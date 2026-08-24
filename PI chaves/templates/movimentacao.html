@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block titulo %} - Retirada e Baixa de Chaves{% endblock %}
+
+{% block usuario %} Bryan {% endblock %}
+
+{% block conteudo %}
+<div class="card mb-5 border-0 shadow-sm rounded-4 mx-auto" id="cadastro_movimentacao" style="max-width: 950px;">
+    
+    <div class="card-header bg-transparent border-0 py-5 px-4" data-bs-toggle="collapse" href="#formularioMovimentacao" role="button" aria-expanded="false" aria-controls="formularioMovimentacao" style="cursor: pointer;">
+        <h4 class="mb-0 text-center d-flex justify-content-center align-items-center gap-2" style="color: var(--cor-base); font-weight: 600;">
+            <i class="bi bi-box-arrow-right text-secondary"></i> 
+            Registrar Retirada / Dar Baixa em Reserva
+            <i class="bi bi-chevron-down ms-2 text-secondary icone-seta"></i>
+        </h4>
+    </div>
+    
+    <div class="collapse" id="formularioMovimentacao">
+        <div class="card-body p-4 pt-0">
+            <hr class="text-secondary mb-4 mt-0" style="opacity: 0.1;">
+            
+            <form class="row g-4" method="POST" action="{{ url_for('movimentacao') }}">
+                
+                <div class="col-md-12">
+                    <label for="codigo_reserva" class="form-label fw-bold text-secondary">Selecione a Reserva Ativa</label>
+                    <select name="codigo_reserva" id="codigo_reserva" class="form-select form-select-lg rounded-3 bg-light border-0" required>
+                        <option value="" selected disabled>Escolha pelo código da reserva / perfil / chave...</option>
+                        {% for mov, perfil, chave in reservas_pendentes %}
+                        <option value="{{ mov.codigo_reserva }}">
+                            Cód: {{ mov.codigo_reserva }} | Perfil: {{ perfil.nome_perfil }} | Chave: {{ chave.nome_chave }} (Reserva para: {{ mov.date_hora_reserva }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text text-muted mt-2">Apenas reservas com status "Reservado" aparecem aqui para liberação.</div>
+                </div>
+
+                <div class="col-12 d-flex justify-content-end mt-4 pt-2">
+                    <button type="submit" id="cadastrar_movimentacao" class="btn px-4 py-2 rounded-3 shadow-sm text-white" style="background-color: var(--cor-primaria);">
+                        <i class="bi bi-check-circle me-2"></i>Confirmar Retirada (Dar Baixa)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ================================================= -->
+<!-- SEÇÃO EXTRA: CHAVES JÁ RETIRADAS (COM BOTÃO DE ESTORNO) -->
+<!-- ================================================= -->
+<div class="card mx-auto border-0 shadow-sm rounded-4" style="max-width: 950px;">
+    <div class="card-header bg-transparent border-0 py-4 px-4">
+        <h5 class="mb-0 text-center fw-bold" style="color: var(--cor-base);">
+            <i class="bi bi-clock-history text-secondary me-2"></i> Chaves Retiradas Recentemente (Estornar se necessário)
+        </h5>
+    </div>
+    <div class="card-body p-4 pt-0">
+        <hr class="text-secondary mb-4 mt-0" style="opacity: 0.1;">
+        
+        <div class="row row-cols-1 row-cols-md-2 g-3">
+            {% for mov, perfil, chave in movimentacoes_retiradas %}
+            <div class="col">
+                <div class="card border-0 bg-light rounded-3 p-3 h-100 shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-bold" style="color: var(--cor-base);">Cód: {{ mov.codigo_reserva }}</span>
+                        <span class="badge bg-success bg-opacity-75">Retirado</span>
+                    </div>
+                    <p class="mb-1 small text-muted"><strong>Perfil:</strong> {{ perfil.nome_perfil }}</p>
+                    <p class="mb-2 small text-muted"><strong>Chave:</strong> {{ chave.nome_chave }}</p>
+                    
+                    <!-- Formulário de Estorno -->
+                    <form action="{{ url_for('estornar_retirada') }}" method="POST" class="mt-auto pt-2">
+                        <input type="hidden" name="id_movimentacao" value="{{ mov.id_movimentacao }}">
+                        <button type="submit" class="btn btn-outline-warning btn-sm w-100 rounded-3">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Desfazer Retirada (Estornar)
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% else %}
+            <div class="col-12 text-center text-muted py-3">
+                <small><i class="bi bi-info-circle me-1"></i> Nenhuma chave retirada no momento.</small>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+
+{% block titulo %} - Ambientes{% endblock %}
+
+{% block usuario %}Bryan{% endblock %}
+
+{% block conteudo %}
+<!-- 1. Formulário de Cadastro (Expansível) -->
+<div class="card mb-5 border-0 shadow-sm rounded-4 mx-auto" id="cadastro" style="max-width: 950px;">
+    
+    <!-- Cabeçalho Clicável -->
+    <div class="card-header bg-transparent border-0 p-4" data-bs-toggle="collapse" href="#formularioCadastro" role="button" aria-expanded="false" aria-controls="formularioCadastro" style="cursor: pointer;">
+        <h4 class="mb-0 text-center d-flex justify-content-center align-items-center gap-2" style="color: var(--cor-base); font-weight: 600;">
+            <i class="bi bi-plus-circle text-secondary"></i> 
+            Cadastro de Ambiente 
+            <i class="bi bi-chevron-down ms-2 text-secondary icone-seta"></i>
+        </h4>
+    </div>
+    
+    <!-- Corpo do Formulário (Oculto por padrão) -->
+    <div class="collapse" id="formularioCadastro">
+        <div class="card-body p-4 pt-0">
+            <hr class="text-secondary mb-4 mt-0" style="opacity: 0.1;">
+            
+            <form class="row g-4" method="POST" action="{{ url_for('ambiente') }}">
+                <div class="col-md-6">
+                    <label for="nome_sala" class="form-label fw-bold text-secondary">Nome da Sala/Ambiente</label>
+                    <input type="text" class="form-control form-control-lg rounded-3 bg-light border-0" id="nome_sala" name="nome_sala" placeholder="Ex: Laboratório de Informática 1" required>
+                </div>
+                
+                <div class="col-md-6">
+                    <label for="tipo" class="form-label fw-bold text-secondary">Tipo</label>
+                    <input type="text" class="form-control form-control-lg rounded-3 bg-light border-0" id="tipo" name="tipo" placeholder="Ex: Laboratório, Auditório, Sala" required>
+                </div>
+                
+                <div class="col-md-6">
+                    <label for="localizacao" class="form-label fw-bold text-secondary">Localização</label>
+                    <input type="text" class="form-control form-control-lg rounded-3 bg-light border-0" id="localizacao" name="localizacao" placeholder="Ex: Bloco A - 2º Andar" required>
+                </div>
+                
+                <div class="col-md-6">
+                    <label for="observacao_ambiente" class="form-label fw-bold text-secondary">Observação</label>
+                    <input type="text" class="form-control form-control-lg rounded-3 bg-light border-0" id="observacao_ambiente" name="observacao_ambiente" placeholder="Ex: Capacidade de 30 alunos">
+                </div>
+                
+                <div class="col-12 d-flex justify-content-end mt-4 pt-2">
+                    <button id="cadastrar_ambiente" type="submit" class="btn px-4 py-2 rounded-3 shadow-sm" style="background-color: var(--cor-primaria); color: white;">
+                        <i class="bi bi-check-circle me-2"></i>Salvar Ambiente
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 2. Pesquisar (Expansível) -->
+<div class="card mx-auto border-0 shadow-sm rounded-4" id="cardPrincipal" style="max-width: 950px;">
+    
+    <!-- Cabeçalho Clicável -->
+    <div class="card-header bg-transparent border-0 p-4" data-bs-toggle="collapse" href="#areaConsulta" role="button" aria-expanded="{% if 'ambiente' in request.args %}true{% else %}false{% endif %}" aria-controls="areaConsulta" style="cursor: pointer;">
+        <h4 class="mb-0 text-center d-flex justify-content-center align-items-center gap-2" style="color: var(--cor-base); font-weight: 600;">
+            <i class="bi bi-search text-secondary"></i>
+            Consultar Ambientes
+            <i class="bi bi-chevron-down ms-2 text-secondary icone-seta"></i>
+        </h4>
+    </div>
+
+   <!-- Corpo da Consulta (Nasce aberto se houver pesquisa) -->
+    <div class="collapse {% if 'ambiente' in request.args %}show{% endif %}" id="areaConsulta">
+        <div class="card-body p-4 pt-0">
+            <hr class="text-secondary mb-4 mt-0" style="opacity: 0.1;">
+            
+            <!-- Barra de Pesquisa -->
+            <div class="d-flex justify-content-center mb-5 mt-2">
+                <form method="get" action="{{ url_for('consultar_ambiente') }}" class="w-75 d-flex gap-2 shadow-sm rounded-3">
+                    <input type="text" class="form-control form-control-lg border-0 bg-light" id="busca_ambiente" name="ambiente" placeholder="Pesquisar por nome da sala...">
+                    <button class="btn text-white px-4 rounded-3" style="background-color: var(--cor-primaria);" type="submit">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Grid de Cards de Resultados -->
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                {% for ambiente in ambientes %}
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0 bg-light rounded-4">
+                        <div class="card-header bg-transparent border-0 text-center pt-4 pb-0">
+                            <i class="bi bi-door-open" style="font-size: 3rem; color: var(--cor-base);"></i>
+                        </div>
+                        <div class="card-body text-center">
+                            <h5 class="card-title fw-bold" style="color: var(--cor-base);">{{ ambiente.nome_sala }}</h5>
+                            <h6 class="text-muted mb-3">{{ ambiente.tipo }}</h6>
+                            
+                            <ul class="list-group list-group-flush text-start mb-3">
+                                <li class="list-group-item bg-transparent border-light">
+                                    <i class="bi bi-geo-alt-fill me-2" style="color: var(--cor-primaria);"></i> {{ ambiente.localizacao }}
+                                </li>
+                                <li class="list-group-item bg-transparent border-light">
+                                    {% if ambiente.status_ambiente == 1 %}
+                                        <!-- Ícone e Badge para ATIVO -->
+                                        <i class="bi bi-check-circle-fill me-2 text-success"></i> 
+                                        <span class="badge bg-success bg-opacity-75">Ativo</span>
+                                    {% else %}
+                                        <!-- Ícone e Badge para INATIVO -->
+                                        <i class="bi bi-x-circle-fill me-2 text-danger"></i> 
+                                        <span class="badge bg-secondary bg-opacity-50">Inativo</span>
+                                    {% endif %}
+                                </li>
+                                {% if ambiente.observacao_ambiente %}
+                                <li class="list-group-item bg-transparent border-light text-muted" style="font-size: 0.9rem;">
+                                    <i class="bi bi-card-text me-2"></i> {{ ambiente.observacao_ambiente }}
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                        <div class="card-footer bg-transparent border-0 d-flex justify-content-center gap-2 pb-4">
+                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-3" data-bs-toggle="modal" data-bs-target="#modal_alterar{{ ambiente.id_ambiente }}"><i class="bi bi-pencil"></i> Editar</button>
+                            <button type="button" class="btn btn-outline-danger btn-sm rounded-3" data-bs-toggle="modal" data-bs-target="#modal_deletar{{ ambiente.id_ambiente }}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+<!-- ====================== -->
+<!-- Modal de Alteração -->
+<!-- ====================== -->
+<div class="modal fade" id="modal_alterar{{ ambiente.id_ambiente }}" tabindex="-1" aria-labelledby="modalLabel{{ ambiente.id_ambiente }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4 bg-light">
+            
+            <!-- Cabeçalho da Modal -->
+            <div class="modal-header border-0 pb-0 pt-4 px-4">
+                <h5 class="modal-title fw-bold" id="modalLabel{{ ambiente.id_ambiente }}" style="color: var(--cor-base);">
+                    <i class="bi bi-pencil-square text-secondary me-2"></i>Alterar Ambiente
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <!-- Formulário -->
+            <form action="{{ url_for('alterar_ambiente') }}" method="POST">
+                <div class="modal-body p-4">
+                    
+                    <!-- Campo Oculto (Crucial para o UPDATE no Python) -->
+                    <input type="hidden" name="id_ambiente" value="{{ ambiente.id_ambiente }}">
+                    
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label for="nome_sala_{{ ambiente.id_ambiente }}" class="form-label fw-bold text-secondary">Nome da Sala/Ambiente</label>
+                            <input type="text" class="form-control form-control-lg rounded-3 border-0 shadow-sm" id="nome_sala_{{ ambiente.id_ambiente }}" name="nome_sala" value="{{ ambiente.nome_sala }}" required>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="tipo_{{ ambiente.id_ambiente }}" class="form-label fw-bold text-secondary">Tipo</label>
+                            <input type="text" class="form-control form-control-lg rounded-3 border-0 shadow-sm" id="tipo_{{ ambiente.id_ambiente }}" name="tipo" value="{{ ambiente.tipo }}" required>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="localizacao_{{ ambiente.id_ambiente }}" class="form-label fw-bold text-secondary">Localização</label>
+                            <input type="text" class="form-control form-control-lg rounded-3 border-0 shadow-sm" id="localizacao_{{ ambiente.id_ambiente }}" name="localizacao" value="{{ ambiente.localizacao }}" required>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="status_{{ ambiente.id_ambiente }}" class="form-label fw-bold text-secondary">Status do Ambiente</label>
+                            <select class="form-select form-select-lg rounded-3 border-0 shadow-sm" id="status_{{ ambiente.id_ambiente }}" name="status" required>
+                                <option value="1" {% if ambiente.status_ambiente == 1 %}selected{% endif %}>Ativo (Funcionando)</option>
+                                <option value="0" {% if ambiente.status_ambiente == 0 %}selected{% endif %}>Inativo (Não funciona)</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="observacao_ambiente_{{ ambiente.id_ambiente }}" class="form-label fw-bold text-secondary">Observação</label>
+                            <input type="text" class="form-control form-control-lg rounded-3 border-0 shadow-sm" id="observacao_ambiente_{{ ambiente.id_ambiente }}" name="observacao_ambiente" value="{{ ambiente.observacao_ambiente }}">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Rodapé da Modal com os Botões -->
+                <div class="modal-footer border-0 pt-0 pb-4 justify-content-center gap-2">
+                    <button type="button" class="btn btn-outline-secondary rounded-3 px-4" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn rounded-3 px-4 shadow-sm" style="background-color: var(--cor-primaria); color: white;">
+                        <i class="bi bi-save me-2"></i>Salvar Alterações
+                    </button>
+                </div>
+            </form>
+            
+        </div>
+    </div>
+</div>
+
+<!-- ==========================-->
+<!-- MODAL DE DELETAR AMBIENTE -->
+<!-- ==========================-->
+<div class="modal fade" id="modal_deletar{{ ambiente.id_ambiente }}" tabindex="-1" aria-labelledby="modalDeleteLabel{{ ambiente.id_ambiente }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 bg-light">
+            
+            <!-- Cabeçalho -->
+            <div class="modal-header border-0 pb-0 pt-4 px-4">
+                <h5 class="modal-title fw-bold text-danger" id="modalDeleteLabel{{ ambiente.id_ambiente }}">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Confirmar Exclusão
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <!-- Formulário -->
+            <form action="{{ url_for('excluir_ambiente') }}" method="POST">
+                <div class="modal-body p-4 text-center">
+                    
+                    <!-- Campo Oculto com ID (Crucial para o Python saber quem deletar) -->
+                    <input type="hidden" name="id_ambiente" value="{{ ambiente.id_ambiente }}">
+                    
+                    <p class="fs-5 mb-1">Tem certeza que deseja deletar o ambiente:</p>
+                    <p class="fs-4 fw-bold mb-3" style="color: var(--cor-base);">{{ ambiente.nome_sala }}?</p>
+                    <p class="text-muted small mb-0">Essa ação não poderá ser desfeita.</p>
+                </div>
+                
+                <!-- Botões Sim / Não -->
+                <div class="modal-footer border-0 pt-0 pb-4 justify-content-center gap-3">
+                    <button type="button" class="btn btn-outline-secondary rounded-3 px-4" data-bs-dismiss="modal">Não, cancelar</button>
+                    <button type="submit" class="btn btn-danger rounded-3 px-4 shadow-sm">
+                        <i class="bi bi-trash me-2"></i>Sim, deletar
+                    </button>
+                </div>
+            </form>
+            
+        </div>
+    </div>
+</div>
+
+                {% else %}
+                <div class="col-12 text-center text-muted my-4">
+                    <i class="bi bi-inbox fs-1" style="opacity: 0.5;"></i>
+                    <p class="mt-2">Nenhum ambiente encontrado.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+{% endblock %}

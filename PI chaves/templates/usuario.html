@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+
+{% block titulo %} - Usuários{% endblock %}
+
+{% block usuario %} Bryan {% endblock %}
+
+{% block conteudo %}
+<!-- 1. Formulário de Cadastro -->
+<div class="card mb-5 border-0 shadow-sm rounded-4 mx-auto" id="cadastro_usuario" style="max-width: 950px;">
+    
+    <div class="card-header bg-transparent border-0 py-5 px-4" data-bs-toggle="collapse" href="#formularioCadastroUsuario" role="button" aria-expanded="false" aria-controls="formularioCadastroUsuario" style="cursor: pointer;">
+        <h4 class="mb-0 text-center d-flex justify-content-center align-items-center gap-2" style="color: var(--cor-base); font-weight: 600;">
+            <i class="bi bi-person-plus text-secondary"></i> 
+            Cadastro de Usuário
+            <i class="bi bi-chevron-down ms-2 text-secondary icone-seta"></i>
+        </h4>
+    </div>
+    
+    <div class="collapse" id="formularioCadastroUsuario">
+        <div class="card-body p-4 pt-0">
+            <hr class="text-secondary mb-4 mt-0" style="opacity: 0.1;">
+            
+            <form class="row g-4" method="POST" action="{{ url_for('usuario') }}">
+                
+                <div class="col-md-6">
+                    <label for="email" class="form-label fw-bold text-secondary">E-mail</label>
+                    <input type="email" class="form-control form-control-lg rounded-3 bg-light border-0" id="email" name="email" placeholder="Ex: joao@senac.df.br" required>
+                </div>
+                
+                <div class="col-md-6">
+                    <label for="senha_usuario" class="form-label fw-bold text-secondary">Senha</label>
+                    <input type="password" class="form-control form-control-lg rounded-3 bg-light border-0" id="senha_usuario" name="senha_usuario" placeholder="Crie uma senha..." required>
+                </div>
+                
+                <div class="col-md-12">
+                    <label for="id_perfil" class="form-label fw-bold text-secondary">Perfil de Acesso</label>
+                    <select name="id_perfil" id="id_perfil" class="form-select form-select-lg rounded-3 bg-light border-0" required>
+                        <option value="" selected disabled>Selecione um perfil...</option>
+                        <!-- Puxando a lista de perfis do banco para o Select -->
+                        {% for perfil in perfis %}
+                            <option value="{{ perfil.id_perfil }}">{{ perfil.nome_perfil }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-12 d-flex justify-content-end mt-4 pt-2">
+                    <button id="cadastrar_usuario_btn" type="submit" class="btn px-4 py-2 rounded-3 shadow-sm" style="background-color: var(--cor-primaria); color: white;">
+                        <i class="bi bi-check-circle me-2"></i>Salvar Usuário
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 2. Área de Pesquisa e Listagem -->
+<div class="card mx-auto border-0 shadow-sm rounded-4" id="cardPrincipalUsuario" style="max-width: 950px;">
+    
+    <div class="card-header bg-transparent border-0 py-5 px-4" data-bs-toggle="collapse" href="#areaConsultaUsuario" role="button" aria-expanded="{% if 'email' in request.args %}true{% else %}false{% endif %}" aria-controls="areaConsultaUsuario" style="cursor: pointer;">
+        <h4 class="mb-0 text-center d-flex justify-content-center align-items-center gap-2" style="color: var(--cor-base); font-weight: 600;">
+            <i class="bi bi-search text-secondary"></i>
+            Consultar Usuários
+            <i class="bi bi-chevron-down ms-2 text-secondary icone-seta"></i>
+        </h4>
+    </div>
+
+    <div class="collapse {% if 'email' in request.args %}show{% endif %}" id="areaConsultaUsuario">
+        <div class="card-body p-4 pt-0">
+            <hr class="text-secondary mb-4 mt-0" style="opacity: 0.1;">
+            
+            <!-- Barra de Pesquisa (Método GET) -->
+            <div class="d-flex justify-content-center mb-5 mt-2">
+                <form method="get" action="{{ url_for('consultar_usuario') }}" class="w-75 d-flex gap-2 shadow-sm rounded-3">
+                    <input type="text" class="form-control form-control-lg border-0 bg-light" id="busca_usuario" name="email" placeholder="Pesquisar por e-mail...">
+                    <button class="btn text-white px-4 rounded-3" style="background-color: var(--cor-primaria);" type="submit">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Grid de Cards de Resultados -->
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                
+                <!-- Considerando que o seu Python envia uma tupla (usuario, perfil) -->
+                {% for usuario, perfil in dados %}
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0 bg-light rounded-4">
+                        <div class="card-header bg-transparent border-0 text-center pt-4 pb-0">
+                            <!-- Ícone padrão de usuário -->
+                            <i class="bi bi-person-fill" style="font-size: 3rem; color: var(--cor-base);"></i>
+                        </div>
+                        <div class="card-body text-center">
+                            <!-- Como não tem nome na tabela, usamos o E-mail como título do card -->
+                            <h5 class="card-title fw-bold" style="color: var(--cor-base); font-size: 1.1rem; word-break: break-all;">
+                                {{ usuario.email }}
+                            </h5>
+                            
+                            <ul class="list-group list-group-flush text-start mb-3 mt-3">
+                                <li class="list-group-item bg-transparent border-light">
+                                    <strong>Perfil:</strong> {{ perfil.nome_perfil }}
+                                </li>
+                                <!-- É mais seguro mascarar a senha na tela do que mostrar em texto limpo -->
+                                <li class="list-group-item bg-transparent border-light text-muted" style="font-size: 0.9rem;">
+                                    <strong>Senha:</strong> ******
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <div class="card-footer bg-transparent border-0 d-flex justify-content-center gap-2 pb-4">
+                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-3" data-bs-toggle="modal" data-bs-target="#modal_alterar_usuario{{ usuario.id_usuario }}">
+                                <i class="bi bi-pencil"></i> Editar
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm rounded-3" data-bs-toggle="modal" data-bs-target="#modal_deletar_usuario{{ usuario.id_usuario }}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- MODAL DE ALTERAR USUÁRIO                   -->
+                <!-- ========================================== -->
+                <div class="modal fade" id="modal_alterar_usuario{{ usuario.id_usuario }}" tabindex="-1" aria-labelledby="modalLabelUsuario{{ usuario.id_usuario }}" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-lg">
+                        <div class="modal-content border-0 shadow-lg rounded-4 bg-light">
+                            <div class="modal-header border-0 pb-0 pt-4 px-4">
+                                <h5 class="modal-title fw-bold" id="modalLabelUsuario{{ usuario.id_usuario }}" style="color: var(--cor-base);">
+                                    <i class="bi bi-pencil-square text-secondary me-2"></i>Alterar Usuário
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            
+                            <form action="{{ url_for('alterar_usuario') }}" method="POST">
+                                <div class="modal-body p-4">
+                                    <input type="hidden" name="id_usuario" value="{{ usuario.id_usuario }}">
+                                    
+                                    <div class="row g-4">
+                                        <div class="col-md-6">
+                                            <label for="email_{{ usuario.id_usuario }}" class="form-label fw-bold text-secondary">E-mail</label>
+                                            <input type="email" class="form-control form-control-lg rounded-3 border-0 shadow-sm" id="email_{{ usuario.id_usuario }}" name="email" value="{{ usuario.email }}" required>
+                                        </div>
+                                        
+                                        <div class="col-md-6">
+                                            <label for="senha_usuario_{{ usuario.id_usuario }}" class="form-label fw-bold text-secondary">Nova Senha</label>
+                                            <input type="password" class="form-control form-control-lg rounded-3 border-0 shadow-sm" id="senha_usuario_{{ usuario.id_usuario }}" name="senha_usuario" value="{{ usuario.senha_usuario }}" required>
+                                        </div>
+                                        
+                                        <div class="col-md-12">
+                                            <label for="id_perfil_{{ usuario.id_usuario }}" class="form-label fw-bold text-secondary">Perfil</label>
+                                            <select class="form-select form-select-lg rounded-3 border-0 shadow-sm" id="id_perfil_{{ usuario.id_usuario }}" name="id_perfil" required>
+                                                {% for p in perfis %}
+                                                    <option value="{{ p.id_perfil }}" {% if usuario.id_perfil == p.id_perfil %}selected{% endif %}>
+                                                        {{ p.nome_perfil }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="modal-footer border-0 pt-0 pb-4 justify-content-center gap-2">
+                                    <button type="button" class="btn btn-outline-secondary rounded-3 px-4" data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="submit" class="btn rounded-3 px-4 shadow-sm" style="background-color: var(--cor-primaria); color: white;">
+                                        <i class="bi bi-save me-2"></i>Salvar Alterações
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- MODAL DE DELETAR USUÁRIO                   -->
+                <!-- ========================================== -->
+                <div class="modal fade" id="modal_deletar_usuario{{ usuario.id_usuario }}" tabindex="-1" aria-labelledby="modalDeleteLabel{{ usuario.id_usuario }}" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content border-0 shadow-lg rounded-4 bg-light">
+                            
+                            <div class="modal-header border-0 pb-0 pt-4 px-4">
+                                <h5 class="modal-title fw-bold text-danger" id="modalDeleteLabel{{ usuario.id_usuario }}">
+                                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Confirmar Exclusão
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            
+                            <form action="{{ url_for('excluir_usuario') }}" method="POST">
+                                <div class="modal-body p-4 text-center">
+                                    <input type="hidden" name="id_usuario" value="{{ usuario.id_usuario }}">
+                                    <p class="fs-5 mb-1">Tem certeza que deseja deletar o usuário:</p>
+                                    <p class="fs-4 fw-bold mb-3" style="color: var(--cor-base); word-break: break-all;">{{ usuario.email }}?</p>
+                                    <p class="text-muted small mb-0">Essa ação não poderá ser desfeita.</p>
+                                </div>
+                                
+                                <div class="modal-footer border-0 pt-0 pb-4 justify-content-center gap-3">
+                                    <button type="button" class="btn btn-outline-secondary rounded-3 px-4" data-bs-dismiss="modal">Não, cancelar</button>
+                                    <button type="submit" class="btn btn-danger rounded-3 px-4 shadow-sm">
+                                        <i class="bi bi-trash me-2"></i>Sim, deletar
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <!-- ========================================== -->
+
+                {% else %}
+                <div class="col-12 text-center text-muted my-4">
+                    <i class="bi bi-person-x fs-1" style="opacity: 0.5;"></i>
+                    <p class="mt-2">Nenhum usuário encontrado.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

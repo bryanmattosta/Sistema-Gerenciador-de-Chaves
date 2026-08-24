@@ -1,0 +1,149 @@
+/* Base */
+/* Variáveis da Paleta (Cores suaves e neutras, sem agredir a vista) */
+:root {
+    --cor-base: #2C3E50;       /* Azul Ardósia Escuro (Mais fosco e elegante) */
+    --cor-primaria: #5B8FA8;   /* Azul Aço Suave (Menos saturado que o ciano) */
+    --cor-fundo: #F4F6F7;      /* Cinza muito clarinho para o fundo */
+    --cor-texto: #4F4F4F;      /* Cinza chumbo para texto */
+    --cor-branco-card: #FFFFFF;
+}
+
+body {
+    background-color: var(--cor-fundo);
+    color: var(--cor-texto);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* --- CABEÇALHO, MENU E RODAPÉ --- */
+.navbar-custom, .div-custom, #rodape {
+    background-color: var(--cor-base) !important;
+    color: #ffffff;
+}
+
+#cabecalho {
+    margin-bottom: 0;
+}
+
+#rodape {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* --- LINKS DO MENU LATERAL (Cards Semi-Transparentes e Suaves) --- */
+.custom-nav-link {
+    background-color: rgba(255, 255, 255, 0.05); 
+    color: rgba(255, 255, 255, 0.85) !important; 
+    border-radius: 8px; 
+    padding: 12px 16px !important;
+    margin-bottom: 12px; 
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.03); 
+    transition: all 0.3s ease;
+}
+
+/* Ícone dentro do card do menu */
+.custom-nav-link i {
+    font-size: 1.3rem;
+    color: rgba(255, 255, 255, 0.6); 
+    transition: color 0.3s ease;
+}
+
+.custom-nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.12); 
+    color: #ffffff !important;
+    transform: translateX(4px); 
+}
+
+.custom-nav-link:hover i {
+    color: var(--cor-primaria);
+}
+
+/* --- BOTÃO DE SAÍDA (Ajustado para não sumir e não agredir) --- */
+.link-sair {
+    background-color: rgba(255, 255, 255, 0.03); 
+    color: #ff8a8a !important; /* Vermelho pastel suave */
+    border: 1px solid rgba(255, 138, 138, 0.2);
+}
+
+.link-sair i {
+    color: #ff8a8a;
+}
+
+.link-sair:hover {
+    background-color: rgba(255, 138, 138, 0.15);
+    color: #ffb3b3 !important;
+}
+
+.link-sair:hover i {
+    color: #ffb3b3;
+}
+
+/* --- CONTEÚDO PRINCIPAL E CARDS --- */
+#conteudo {
+    background-color: var(--cor-fundo);
+}
+
+#cardPrincipal, #cadastro {
+    max-width: 800px;
+    margin: 3rem auto; 
+    background-color: var(--cor-branco-card);
+    padding: 2.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04); 
+}
+
+#nome_card {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: var(--cor-base);
+    font-weight: 600;
+}
+
+#tema_chave {
+    margin-top: 8px;
+}
+
+/* --- BOTÕES DE AÇÃO DOS FORMULÁRIOS --- */
+#cadastrar_chave, #cadastrar_ambiente, #cadastrar_usuario, #cadastrar_perfil {
+    background-color: var(--cor-primaria);
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+#cadastrar_chave:hover, #cadastrar_ambiente:hover, 
+#cadastrar_usuario:hover, #cadastrar_perfil:hover {
+    background-color: #4A7A92; /* Um tom ligeiramente mais escuro e sóbrio */
+    transform: translateY(-2px); 
+    box-shadow: 0 4px 8px rgba(91, 143, 168, 0.25);
+}
+
+/* Ambiente */
+
+/* --- LARGURA DOS CARDS (Formatos Retangulares) --- */
+#cadastro, #cardPrincipal {
+    /* Aumenta a largura máxima para dar o aspecto retangular */
+    max-width: 950px !important; 
+}
+
+/* --- ANIMAÇÃO DA SETINHA NO ACORDEON --- */
+.icone-seta {
+    transition: transform 0.3s ease;
+}
+
+/* Quando o formulário estiver aberto (aria-expanded="true"), a seta vira para cima */
+#cadastro .card-header[aria-expanded="true"] .icone-seta {
+    transform: rotate(180deg);
+}
+
+#cadastro .card-header[aria-expanded="true"] .icone-seta {
+    transform: rotate(180deg);
+}
+
+.card-header[aria-expanded="true"] .icone-seta {
+    transform: rotate(180deg);
+}

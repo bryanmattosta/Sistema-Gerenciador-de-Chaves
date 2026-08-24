@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block titulo %} - Histórico Geral{% endblock %}
+
+{% block usuario %} Bryan {% endblock %}
+
+{% block conteudo %}
+<div class="card mb-5 border-0 shadow-sm rounded-4 mx-auto" style="max-width: 1100px;">
+    
+    <div class="card-header bg-transparent border-0 py-5 px-4 text-center">
+        <h4 class="mb-0 fw-bold d-flex justify-content-center align-items-center gap-2" style="color: var(--cor-base);">
+            <i class="bi bi-clock-history text-secondary"></i> 
+            Histórico Geral de Movimentações
+        </h4>
+        <p class="text-muted small mt-1 mb-0">Pesquise pelo código da reserva ou consulte todas as movimentações registradas.</p>
+    </div>
+    
+    <div class="card-body p-4 pt-0">
+        <hr class="text-secondary mb-4 mt-0" style="opacity: 0.1;">
+        
+        <!-- Barra de Pesquisa por Código da Reserva -->
+        <div class="d-flex justify-content-center mb-5 mt-2">
+            <form method="get" action="{{ url_for('historico') }}" class="w-75 d-flex gap-2 shadow-sm rounded-3">
+                <input type="text" class="form-control form-control-lg border-0 bg-light" placeholder="Pesquise o código da reserva..." name="busca" value="{{ termo_busca }}">
+                <button class="btn text-white px-4 rounded-3" style="background-color: var(--cor-primaria);" type="submit">
+                    <i class="bi bi-search"></i>
+                </button>
+                {% if termo_busca %}
+                <a href="{{ url_for('historico') }}" class="btn btn-outline-secondary px-3 rounded-3 d-flex align-items-center" title="Limpar busca">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+                {% endif %}
+            </form>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th class="py-3 ps-3">Código</th>
+                        <th class="py-3">Perfil</th>
+                        <th class="py-3">Chave</th>
+                        <th class="py-3 text-center">Status</th>
+                        <th class="py-3 text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mov, perfil, chave in historico %}
+                    <tr>
+                        <td class="ps-3 fw-bold" style="color: var(--cor-base);">{{ mov.codigo_reserva }}</td>
+                        <td>{{ perfil.nome_perfil }}</td>
+                        <td>{{ chave.nome_chave }}</td>
+                        <td class="text-center">
+                            {% if mov.status == 'Reservado' %}
+                                <span class="badge bg-primary bg-opacity-75 px-3 py-2 rounded-pill">Reservado</span>
+                            {% elif mov.status == 'Retirado' %}
+                                <span class="badge bg-success bg-opacity-75 px-3 py-2 rounded-pill">Retirado</span>
+                            {% else %}
+                                <span class="badge bg-secondary bg-opacity-75 px-3 py-2 rounded-pill">Devolvido</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-3 px-3" data-bs-toggle="modal" data-bs-target="#modalDetalhes{{ mov.id_movimentacao }}">
+                                <i class="bi bi-eye"></i> Detalhes
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- ========================================== -->
+                    <!-- MODAL DE DETALHES DA MOVIMENTAÇÃO          -->
+                    <!-- ========================================== -->
+                    <div class="modal fade" id="modalDetalhes{{ mov.id_movimentacao }}" tabindex="-1" aria-labelledby="modalLabel{{ mov.id_movimentacao }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered modal-lg">
+                            <div class="modal-content border-0 shadow-lg rounded-4 bg-light">
+                                <div class="modal-header border-0 pb-0 pt-4 px-4">
+                                    <h5 class="modal-title fw-bold" id="modalLabel{{ mov.id_movimentacao }}" style="color: var(--cor-base);">
+                                        <i class="bi bi-info-circle text-secondary me-2"></i>Detalhes da Movimentação (Cód: {{ mov.codigo_reserva }})
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                
+                                <div class="modal-body p-4">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <div class="p-3 bg-white rounded-3 shadow-sm h-100">
+                                                <span class="text-muted small d-block">Perfil Responsável</span>
+                                                <strong style="color: var(--cor-base);">{{ perfil.nome_perfil }}</strong>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-6">
+                                            <div class="p-3 bg-white rounded-3 shadow-sm h-100">
+                                                <span class="text-muted small d-block">Chave Solicitada</span>
+                                                <strong style="color: var(--cor-base);">{{ chave.nome_chave }}</strong>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <div class="p-3 bg-white rounded-3 shadow-sm h-100">
+                                                <span class="text-muted small d-block">Data da Reserva</span>
+                                                <span>{{ mov.date_hora_reserva or 'Não informada' }}</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <div class="p-3 bg-white rounded-3 shadow-sm h-100">
+                                                <span class="text-muted small d-block">Previsão de Devolução</span>
+                                                <span>{{ mov.date_hora_devolucao_prev or 'Não definida' }}</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <div class="p-3 bg-white rounded-3 shadow-sm h-100">
+                                                <span class="text-muted small d-block">Data da Retirada</span>
+                                                <span>{{ mov.date_hora_retirada or 'Pendente' }}</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <div class="p-3 bg-white rounded-3 shadow-sm h-100">
+                                                <span class="text-muted small d-block">Data da Devolução Real</span>
+                                                <span>{{ mov.date_hora_devolucao or 'Ainda não devolvido' }}</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <div class="p-3 bg-white rounded-3 shadow-sm h-100">
+                                                <span class="text-muted small d-block">Status de Prazo (Atraso)</span>
+                                                {% if mov.status == 'Devolvido' and mov.date_hora_devolucao_prev and mov.date_hora_devolucao > mov.date_hora_devolucao_prev %}
+                                                    <span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i> Devolvido com Atraso</span>
+                                                {% elif mov.status == 'Retirado' and mov.date_hora_devolucao_prev %}
+                                                    <span class="text-warning fw-bold"><i class="bi bi-clock me-1"></i> Em andamento</span>
+                                                {% else %}
+                                                    <span class="text-success fw-bold"><i class="bi bi-check-circle me-1"></i> No Prazo / Normal</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-12">
+                                            <div class="p-3 bg-white rounded-3 shadow-sm">
+                                                <span class="text-muted small d-block">Observações / Avarias Registradas</span>
+                                                <p class="mb-0 text-dark">{{ mov.observacao_devolucao or 'Nenhuma avaria ou observação registrada.' }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="modal-footer border-0 pt-0 pb-4 justify-content-center">
+                                    <button type="button" class="btn btn-secondary rounded-3 px-4" data-bs-dismiss="modal">Fechar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- ========================================== -->
+
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-5">
+                            <i class="bi bi-journal-x fs-2 d-block mb-2" style="opacity: 0.5;"></i>
+                            Nenhum histórico encontrado com esse código.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
