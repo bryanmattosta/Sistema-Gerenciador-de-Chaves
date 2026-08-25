@@ -5,7 +5,15 @@ from flask_sqlalchemy import SQLAlchemy
 from tabelas import engine, Base, Chave, Usuario, Perfil, Ambiente, Movimentacao
 from random import randint
 from datetime import datetime
-
+from functools import wraps
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_wtf.csrf import CSRFProtect
+from email.message import EmailMessage
+from flask import send_file
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+import random
+import smtplib
 
 
 #cria a sesao
@@ -18,8 +26,19 @@ app.secret_key="123456"
 
 #home
 @app.route("/")
-def home():
-    return render_template('index.html')
+def home(): 
+    total_ambientes = sessao.query(Ambiente).count()
+    total_reservas = sessao.query(Movimentacao).filter(Movimentacao.id_movimentacao).count()
+    total_devolucoes = sessao.query(Movimentacao).filter(Movimentacao.status == "Retirado").count()
+    total_usuarios = sessao.query(Usuario).count()
+
+    return render_template(
+    "index.html", total_ambientes=total_ambientes,
+    total_reservas=total_reservas,
+    total_devolucoes=total_devolucoes,
+    total_usuarios=total_usuarios
+    )
+    
 
 #chave 
 @app.route("/chave", methods=["GET", "POST"])
@@ -602,5 +621,24 @@ def historico():
         ).all()
         
     return render_template('historico.html', historico=historico_geral, termo_busca=termo_busca)
+
+@app.route("/esqueci-senha", methods=["GET", "POST"])
+def esqueci_senha():
+    if request.method == "POST":
+        email = request.form.get("email")
+        usuario = sessao.query(Usuario).filter_by(email=email).first()
+        
+        if usuario is None:
+            flash("E-mail não encontrado!", "danger")
+            return redirect(url_for("esqueci_senha"))
+        
+        nova_senha = str(random.randint(100000, 999999))
+        usuario.senha = generate_password_hash(nova_senha)
+        sessao.commit()
+        enviar_email(email, nova_senha)
+        flash("Uma nova senha foi enviada para seu e-mail!","success")
+        return redirect(url_for("login"))
+
+    return render_template("esqueci_senha.html")
 
 app.run(debug=True)
