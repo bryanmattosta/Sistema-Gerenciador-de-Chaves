@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from sqlalchemy import create_engine, Column, Integer, String, Numeric, Date
 from sqlalchemy.orm import declarative_base, sessionmaker
 from flask_sqlalchemy import SQLAlchemy
+from flask import session
+from werkzeug.security import generate_password_hash, check_password_hash
 from tabelas import engine, Base, Chave, Usuario, Perfil, Ambiente, Movimentacao
 from random import randint
 from datetime import datetime
@@ -22,10 +24,28 @@ sessao  = Session()
 
 
 app = Flask(__name__)
-app.secret_key="123456"
+app.secret_key="jPsAzLWzvd9pwQWric93xduG6wFrDpXb"
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SECURE"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+# csrf = CSRFProtect(app)
+
+
+#Decorador para proteger a pagina
+#proteger as paginas basta colocar @login_obrigatorio
+def login_obrigatorio(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if "perfil" not in session:
+            flash("Faça login para continuar.", "warning")
+            return redirect(url_for("login"))
+        return func(*args, **kwargs)
+    return wrapper
+
 
 #home
 @app.route("/")
+@login_obrigatorio
 def home(): 
     total_ambientes = sessao.query(Ambiente).count()
     total_reservas = sessao.query(Movimentacao).filter(Movimentacao.id_movimentacao).count()
@@ -42,6 +62,7 @@ def home():
 
 #chave 
 @app.route("/chave", methods=["GET", "POST"])
+@login_obrigatorio
 def chave():
     # Lista de todos os ambientes para preencher o <select>
     todos_ambiente = sessao.query(Ambiente).all()
@@ -77,6 +98,7 @@ def chave():
 
 #chave consultar
 @app.route("/chave/consultar", methods=["GET", "POST"])
+@login_obrigatorio
 def consultar_chave():
     #Pegar a chave foi informada
     chave_nome = request.args.get("nome_chave","")
@@ -88,6 +110,7 @@ def consultar_chave():
 
 #alterar
 @app.route("/chave/alterar", methods=["POST"])
+@login_obrigatorio
 def alterar_chave():
     
     # 1. Pega o ID que veio escondido no formulário da modal
@@ -127,6 +150,7 @@ def alterar_chave():
 
 #chave 
 @app.route("/chave/excluir", methods=["POST"])
+@login_obrigatorio
 def excluir_chave():
     # 1. Pega o ID que veio escondido no formulário da modal
     id_chave = request.form.get("id_chave")
@@ -147,6 +171,7 @@ def excluir_chave():
 
 #usuario
 @app.route("/usuario", methods=["GET", "POST"])
+@login_obrigatorio
 def usuario():
     # 1. Pega os perfis para preencher o <select> do formulário
     todos_perfis = sessao.query(Perfil).all()
@@ -156,6 +181,7 @@ def usuario():
         email = request.form.get("email")
         senha_usuario = request.form.get("senha_usuario")
         id_perfil = request.form.get("id_perfil")
+        senha_hash = generate_password_hash(senha_usuario)
         
         # 3. Validação (usando o E-mail, já que não temos o nome)
         if not email or email.strip() == "":
@@ -166,7 +192,7 @@ def usuario():
         # 4. Inserir usuário no banco
         novo_usuario = Usuario(
             email=email, 
-            senha_usuario=senha_usuario, 
+            senha_usuario=senha_hash, 
             id_perfil=id_perfil
         )
         
@@ -182,6 +208,7 @@ def usuario():
 
 #consultar usuário
 @app.route("/usuario/consultar", methods=["GET"])
+@login_obrigatorio
 def consultar_usuario():
     
     # 1. Pega o e-mail que foi digitado na barra de pesquisa
@@ -202,6 +229,7 @@ def consultar_usuario():
 
 #alterar usuario
 @app.route("/usuario/alterar", methods=["POST"])
+@login_obrigatorio
 def alterar_usuario():
     # 1. Pega o ID que veio escondido no formulário da modal
     id_usuario = request.form.get("id_usuario")
@@ -238,6 +266,7 @@ def alterar_usuario():
 
 #usuario excluir falta ver
 @app.route("/usuario/excluir", methods=["POST"])
+@login_obrigatorio
 def excluir_usuario():
     # 1. Pega o ID que veio escondido no formulário da modal
     id_usuario = request.form.get("id_usuario")
@@ -258,6 +287,7 @@ def excluir_usuario():
 
 #ambiente
 @app.route("/ambiente", methods=["GET", "POST"])
+@login_obrigatorio
 def ambiente():
     if request.method == "POST":
         # Aqui você pode processar os dados do formulário, por exemplo, salvando em um banco de dados
@@ -285,6 +315,7 @@ def ambiente():
 
 #ambiente consultar
 @app.route("/ambiente/consultar",methods=["GET", "POST"])
+@login_obrigatorio
 def consultar_ambiente():
     #Pegar o ambiente informado
     ambiente_nome = request.args.get("ambiente","")
@@ -297,6 +328,7 @@ def consultar_ambiente():
 
 #alterar ambiente
 @app.route("/ambiente/alterar", methods=["POST"])
+@login_obrigatorio
 def alterar_ambiente():
     # 1. Pega o ID que veio escondido naquele campo <input type="hidden"> da modal
     id_ambiente = request.form.get("id_ambiente")
@@ -337,6 +369,7 @@ def alterar_ambiente():
 
 #ambiente excluir
 @app.route("/ambiente/excluir", methods=["POST"])
+@login_obrigatorio
 def excluir_ambiente():
     # 1. Pega o ID que veio escondido no formulário da modal
     id_ambiente = request.form.get("id_ambiente")
@@ -357,6 +390,7 @@ def excluir_ambiente():
 
 #perfil
 @app.route("/perfil", methods=["GET", "POST"])
+@login_obrigatorio
 def perfil():
 
     if request.method == "POST":
@@ -391,6 +425,7 @@ def perfil():
 
 #consultar perfil
 @app.route("/perfil/consultar", methods=["GET"])
+@login_obrigatorio
 def consultar_perfil():
     # 1. Pega o texto que foi digitado na barra de pesquisa (nome exato do HTML)
     nome_busca = request.args.get("nome_perfil", "")
@@ -403,6 +438,7 @@ def consultar_perfil():
 
 #alterar perfil
 @app.route("/perfil/alterar", methods=["POST"])
+@login_obrigatorio
 def alterar_perfil():
     # 1. Pega o ID que veio escondido no formulário da modal
     id_perfil = request.form.get("id_perfil")
@@ -441,6 +477,7 @@ def alterar_perfil():
 
 #perfil excluir
 @app.route("/perfil/excluir", methods=["POST"])
+@login_obrigatorio
 def excluir_perfil():
     # 1. Pega o ID que veio escondido no formulário da modal de exclusão
     id_perfil = request.form.get("id_perfil")
@@ -459,7 +496,9 @@ def excluir_perfil():
     # 4. Retorna a tela principal do perfil
     return redirect(url_for("perfil"))
 
+#movimentacao confirmar
 @app.route("/movimentacao", methods=["GET", "POST"])
+@login_obrigatorio
 def movimentacao():
     if request.method == "POST":
         mov = sessao.query(Movimentacao).filter_by(codigo_reserva=request.form.get("codigo_reserva")).first()
@@ -478,6 +517,7 @@ def movimentacao():
 
 #estonar_movimentacao
 @app.route("/movimentacao/estornar", methods=["POST"])
+@login_obrigatorio
 def estornar_retirada():
     mov = sessao.query(Movimentacao).get(request.form.get("id_movimentacao"))
     if mov:
@@ -488,8 +528,9 @@ def estornar_retirada():
         flash("Movimentação não encontrada!", "danger")
     return redirect(url_for("movimentacao"))
 
-#devolucao #feita
+#devolucao confirmar
 @app.route("/devolucao", methods=["GET", "POST"])
+@login_obrigatorio
 def devolucao():
     if request.method == "POST":
         mov = sessao.query(Movimentacao).filter_by(codigo_reserva=request.form.get("codigo_reserva")).first()
@@ -506,6 +547,7 @@ def devolucao():
 
 #estonar_devolucao
 @app.route("/devolucao/estornar", methods=["POST"])
+@login_obrigatorio
 def estornar_devolucao():
     mov = sessao.query(Movimentacao).get(request.form.get("id_movimentacao"))
     if mov:
@@ -518,6 +560,7 @@ def estornar_devolucao():
 
 #reserva
 @app.route("/reserva", methods=["GET", "POST"])
+@login_obrigatorio
 def reserva():
     todos_perfis = sessao.query(Perfil).all()
     todas_chaves = sessao.query(Chave).all()
@@ -551,6 +594,7 @@ def reserva():
 
 #consultar reserva
 @app.route("/reserva/consultar", methods=["GET"])
+@login_obrigatorio
 def consultar_reserva():
     termo_busca = request.args.get("reserva", "")
     
@@ -572,6 +616,7 @@ def consultar_reserva():
 
 #alterar reserva
 @app.route("/reserva/alterar", methods=["POST"])
+@login_obrigatorio
 def alterar_reserva():
     id_movimentacao = request.form.get("id_movimentacao")
     mov = sessao.query(Movimentacao).get(id_movimentacao)
@@ -591,6 +636,7 @@ def alterar_reserva():
 
 #reserva excluir
 @app.route("/reserva/excluir", methods=["POST"])
+@login_obrigatorio
 def excluir_reserva():
     id_movimentacao = request.form.get("id_movimentacao")
     mov = sessao.query(Movimentacao).get(id_movimentacao)
@@ -606,7 +652,7 @@ def excluir_reserva():
 
 #historico
 @app.route("/historico", methods=["GET"])
-@app.route("/historico", methods=["GET"])
+@login_obrigatorio
 def historico():
     termo_busca = request.args.get("busca", "").strip()
     historico_geral = []
@@ -621,6 +667,7 @@ def historico():
         ).all()
         
     return render_template('historico.html', historico=historico_geral, termo_busca=termo_busca)
+
 
 @app.route("/esqueci-senha", methods=["GET", "POST"])
 def esqueci_senha():
@@ -640,5 +687,36 @@ def esqueci_senha():
         return redirect(url_for("login"))
 
     return render_template("esqueci_senha.html")
+
+#login
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    
+    if request.method == "POST":
+        email_login= request.form.get('email')
+        senha_login= request.form.get('senha')
+        usuario=sessao.query(Usuario).filter_by(email=email_login).first()
+        
+        if usuario and check_password_hash(usuario.senha_usuario, senha_login):
+            session["id_usuario"] = usuario.id_usuario
+            session["id_perfil"] = usuario.id_perfil
+            perfil = sessao.query(Perfil).filter_by(id_perfil=usuario.id_perfil).first()
+            session["perfil"] = perfil.nome_perfil
+            print(perfil.nome_perfil)
+            flash("Login realizado com sucesso!", "success")
+            return redirect(url_for("home"))
+        
+        flash("Usuário ou senha inválidos.", "danger")
+        
+    return render_template('login.html')
+
+#logout
+@app.route("/logout")
+@login_obrigatorio
+def logout():
+    session.clear()
+    flash("Logout realizado.", "success")
+    return redirect(url_for("login"))
+
 
 app.run(debug=True)
