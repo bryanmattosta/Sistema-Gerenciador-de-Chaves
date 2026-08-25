@@ -22,6 +22,32 @@ import smtplib
 Session = sessionmaker(bind=engine)
 sessao  = Session()
 
+#criar o app
+app = Flask(__name__)
+app.secret_key="63f4945d921d599f27ae4fdf5bada3f1"
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SECURE"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+#csrf = CSRFProtect(app)
+
+#variaveis do email (gmail)
+EMAIL = "senacdf.operadormicro@gmail.com"
+SENHA_EMAIL = "uetz ezsn jjuy klyo"
+
+#enviar email de nova senha
+def enviar_email(destinatario, nova_senha):
+    mensagem = EmailMessage()
+    mensagem["Subject"] = "Nova senha - Sistema"
+    mensagem["From"] = EMAIL
+    mensagem["To"] = destinatario
+    mensagem.set_content(f"""Olá! Sua nova senha de acesso ao sistema é:
+                        {nova_senha} 
+                        Utilize essa senha para acessar o sistema. 
+                        Atenciosamente, Sistema""")
+    servidor = smtplib.SMTP("smtp.gmail.com", 587)
+    servidor.starttls()
+    servidor.login(EMAIL,SENHA_EMAIL)
+    servidor.send_message(mensagem)
 
 app = Flask(__name__)
 app.secret_key="123456"
@@ -636,7 +662,7 @@ def esqueci_senha():
             return redirect(url_for("esqueci_senha"))
         
         nova_senha = str(random.randint(100000, 999999))
-        usuario.senha = generate_password_hash(nova_senha)
+        usuario.senha_usuario = generate_password_hash(nova_senha)
         sessao.commit()
         enviar_email(email, nova_senha)
         flash("Uma nova senha foi enviada para seu e-mail!","success")
