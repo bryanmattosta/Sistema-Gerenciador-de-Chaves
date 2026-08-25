@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block titulo %} - Relatórios{% endblock %}
+
+{% block conteudo %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex align-items-center justify-content-between">
+            <div>
+                <h2 class="fw-bold" style="color: var(--cor-base);">Relatórios do Sistema</h2>
+                <p class="text-muted mb-0">Consulte e filtre os registros de movimentações e chaves</p>
+            </div>
+            <div>
+                <!-- Botão de exportar/imprimir opcional -->
+                <button onclick="window.print()" class="btn btn-outline-secondary rounded-3 shadow-sm">
+                    <i class="bi bi-printer me-2"></i>Imprimir / PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Card de Filtros -->
+<div class="card border-0 shadow-sm rounded-4 mb-4 bg-light">
+    <div class="card-body p-4">
+        <form method="GET" action="{{ url_for('relatorio') }}">
+            <div class="row g-3 align-items-end">
+                
+                <!-- Data Inicial -->
+                <div class="col-md-3">
+                    <label for="data_inicio" class="form-label fw-bold text-secondary small">Data Inicial</label>
+                    <input type="date" class="form-control rounded-3 border-0 shadow-sm" id="data_inicio" name="data_inicio">
+                </div>
+
+                <!-- Data Final -->
+                <div class="col-md-3">
+                    <label for="data_fim" class="form-label fw-bold text-secondary small">Data Final</label>
+                    <input type="date" class="form-control rounded-3 border-0 shadow-sm" id="data_fim" name="data_fim">
+                </div>
+
+                <!-- Status / Tipo -->
+                <div class="col-md-4">
+                    <label for="status" class="form-label fw-bold text-secondary small">Filtrar por Status</label>
+                    <select class="form-select rounded-3 border-0 shadow-sm" id="status" name="status">
+                        <option value="">Todos os status</option>
+                        <option value="Reservado">Reservado</option>
+                        <option value="Retirado">Retirado</option>
+                        <option value="Devolvido">Devolvido</option>
+                    </select>
+                </div>
+
+                <!-- Botão Filtrar -->
+                <div class="col-md-2 d-grid">
+                    <button type="submit" class="btn text-white rounded-3 shadow-sm py-2" style="background-color: var(--cor-primaria);">
+                        <i class="bi bi-search me-1"></i> Filtrar
+                    </button>
+                </div>
+
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabela de Resultados -->
+<div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-secondary small text-uppercase">
+                    <tr>
+                        <th class="py-3 ps-4">Código</th>
+                        <th class="py-3">ID Perfil</th>
+                        <th class="py-3">ID Chave</th>
+                        <th class="py-3">Data Reserva</th>
+                        <th class="py-3">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if dados_relatorio %}
+                        {% for item in dados_relatorio %}
+                        <tr>
+                            <td class="ps-4 fw-bold text-secondary">{{ item.codigo_reserva }}</td>
+                            <td>{{ item.id_perfil }}</td>
+                            <td>{{ item.id_chave }}</td>
+                            <td>{{ item.date_hora_reserva }}</td>
+                            <td>
+                                <span class="badge bg-secondary px-3 py-2 rounded-pill">{{ item.status }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <!-- Estado Vazio caso não haja dados na busca -->
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <i class="bi bi-folder2-open display-6 d-block mb-2 text-secondary opacity-50"></i>
+                                Nenhum registro encontrado para os filtros selecionados.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

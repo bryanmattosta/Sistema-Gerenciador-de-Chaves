@@ -147,3 +147,44 @@ body {
 .card-header[aria-expanded="true"] .icone-seta {
     transform: rotate(180deg);
 }
+
+@media print {
+    
+    .btn, 
+    form, 
+    header, 
+    footer, 
+    .navbar, 
+    .offcanvas,
+    .card.bg-light { 
+        display: none !important;
+    }
+
+    
+    body {
+        background-color: #fff !important;
+        color: #000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+    }
+
+    
+    .table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        margin-top: 10px !important;
+    }
+
+    .table th, .table td {
+        border-bottom: 1px solid #ccc !important;
+        color: #000 !important;
+        padding: 8px !important;
+    }
+}

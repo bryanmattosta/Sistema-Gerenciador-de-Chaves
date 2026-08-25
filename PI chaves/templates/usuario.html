@@ -32,14 +32,24 @@
                     <input type="password" class="form-control form-control-lg rounded-3 bg-light border-0" id="senha_usuario" name="senha_usuario" placeholder="Crie uma senha..." required>
                 </div>
                 
-                <div class="col-md-12">
+                <div class="col-md-6">
                     <label for="id_perfil" class="form-label fw-bold text-secondary">Perfil de Acesso</label>
                     <select name="id_perfil" id="id_perfil" class="form-select form-select-lg rounded-3 bg-light border-0" required>
                         <option value="" selected disabled>Selecione um perfil...</option>
-                        <!-- Puxando a lista de perfis do banco para o Select -->
                         {% for perfil in perfis %}
                             <option value="{{ perfil.id_perfil }}">{{ perfil.nome_perfil }}</option>
                         {% endfor %}
+                    </select>
+                </div>
+
+                <!-- NOVO CAMPO: Nível do Usuário -->
+                <div class="col-md-6">
+                    <label for="nivel" class="form-label fw-bold text-secondary">Nível de Acesso</label>
+                    <select name="nivel" id="nivel" class="form-select form-select-lg rounded-3 bg-light border-0" required>
+                        <option value="" selected disabled>Selecione o nível...</option>
+                        <option value="Administrador">Administrador</option>
+                        <option value="Professor">Professor</option>
+                        <option value="Atendente">Atendente</option>
                     </select>
                 </div>
                 
@@ -81,16 +91,13 @@
             <!-- Grid de Cards de Resultados -->
             <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
                 
-                <!-- Considerando que o seu Python envia uma tupla (usuario, perfil) -->
                 {% for usuario, perfil in dados %}
                 <div class="col">
                     <div class="card h-100 shadow-sm border-0 bg-light rounded-4">
                         <div class="card-header bg-transparent border-0 text-center pt-4 pb-0">
-                            <!-- Ícone padrão de usuário -->
                             <i class="bi bi-person-fill" style="font-size: 3rem; color: var(--cor-base);"></i>
                         </div>
                         <div class="card-body text-center">
-                            <!-- Como não tem nome na tabela, usamos o E-mail como título do card -->
                             <h5 class="card-title fw-bold" style="color: var(--cor-base); font-size: 1.1rem; word-break: break-all;">
                                 {{ usuario.email }}
                             </h5>
@@ -99,7 +106,10 @@
                                 <li class="list-group-item bg-transparent border-light">
                                     <strong>Perfil:</strong> {{ perfil.nome_perfil }}
                                 </li>
-                                <!-- É mais seguro mascarar a senha na tela do que mostrar em texto limpo -->
+                                <!-- EXIBINDO O NÍVEL DO USUÁRIO -->
+                                <li class="list-group-item bg-transparent border-light">
+                                    <strong>Nível:</strong> {{ usuario.nivel }}
+                                </li>
                                 <li class="list-group-item bg-transparent border-light text-muted" style="font-size: 0.9rem;">
                                     <strong>Senha:</strong> ******
                                 </li>
@@ -145,7 +155,7 @@
                                             <input type="password" class="form-control form-control-lg rounded-3 border-0 shadow-sm" id="senha_usuario_{{ usuario.id_usuario }}" name="senha_usuario" value="{{ usuario.senha_usuario }}" required>
                                         </div>
                                         
-                                        <div class="col-md-12">
+                                        <div class="col-md-6">
                                             <label for="id_perfil_{{ usuario.id_usuario }}" class="form-label fw-bold text-secondary">Perfil</label>
                                             <select class="form-select form-select-lg rounded-3 border-0 shadow-sm" id="id_perfil_{{ usuario.id_usuario }}" name="id_perfil" required>
                                                 {% for p in perfis %}
@@ -153,6 +163,16 @@
                                                         {{ p.nome_perfil }}
                                                     </option>
                                                 {% endfor %}
+                                            </select>
+                                        </div>
+
+                                        <!-- CAMPO NÍVEL NO MODAL DE EDIÇÃO -->
+                                        <div class="col-md-6">
+                                            <label for="nivel_{{ usuario.id_usuario }}" class="form-label fw-bold text-secondary">Nível de Acesso</label>
+                                            <select class="form-select form-select-lg rounded-3 border-0 shadow-sm" id="nivel_{{ usuario.id_usuario }}" name="nivel" required>
+                                                <option value="Administrador" {% if usuario.nivel == 'Administrador' %}selected{% endif %}>Administrador</option>
+                                                <option value="Professor" {% if usuario.nivel == 'Professor' %}selected{% endif %}>Professor</option>
+                                                <option value="Atendente" {% if usuario.nivel == 'Atendente' %}selected{% endif %}>Atendente</option>
                                             </select>
                                         </div>
                                     </div>

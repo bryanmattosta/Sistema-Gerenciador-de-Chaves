@@ -28,7 +28,7 @@ app.secret_key="63f4945d921d599f27ae4fdf5bada3f1"
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SECURE"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-#csrf = CSRFProtect(app)
+# csrf = CSRFProtect(app)
 
 #variaveis do email (gmail)
 EMAIL = "senacdf.operadormicro@gmail.com"
@@ -48,6 +48,27 @@ def enviar_email(destinatario, nova_senha):
     servidor.starttls()
     servidor.login(EMAIL,SENHA_EMAIL)
     servidor.send_message(mensagem)
+    servidor.quit()
+
+
+def enviar_email_reserva(destinatario, codigo_reserva):
+    mensagem = EmailMessage()
+    mensagem["Subject"] = "Confirmação de Reserva - Sistema de Chaves"
+    mensagem["From"] = EMAIL
+    mensagem["To"] = destinatario
+    mensagem.set_content(f"""Olá! Sua reserva foi realizada com sucesso.
+    
+Seu código de reserva é: {codigo_reserva}
+Guarde este código para retirar a chave.
+
+Atenciosamente, 
+Sistema de Gerenciamento de Chaves""")
+    
+    servidor = smtplib.SMTP("smtp.gmail.com", 587)
+    servidor.starttls()
+    servidor.login(EMAIL, SENHA_EMAIL)
+    servidor.send_message(mensagem)
+    servidor.quit()
 
 app = Flask(__name__)
 app.secret_key="jPsAzLWzvd9pwQWric93xduG6wFrDpXb"
@@ -59,15 +80,63 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
 #Decorador para proteger a pagina
 #proteger as paginas basta colocar @login_obrigatorio
-def login_obrigatorio(func):
+def login_obrigatorio(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if "email" not in session:
+            flash("Faça o login primeiro para acessar o sistema!", "warning") # <--- Alerta amigável
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def administrador_obrigatorio(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if "perfil" not in session:
+        if "email" not in session:
             flash("Faça login para continuar.", "warning")
             return redirect(url_for("login"))
+        
+        if session.get("nivel") != "Administrador":
+            flash("Você não tem permissão para acessar esta página.", "danger")
+            return redirect(url_for("reserva"))
+       
         return func(*args, **kwargs)
     return wrapper
 
+def professor_obrigatorio(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if "email" not in session:
+            flash("Faça login para continuar.", "warning")
+            return redirect(url_for("login"))
+        
+        if session.get("nivel") != "Professor":
+            flash("Você não tem permissão para acessar esta página.", "danger")
+            return redirect(url_for("reserva"))
+       
+        return func(*args, **kwargs)
+    return wrapper
+
+def atendente_obrigatorio(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if "email" not in session:
+            flash("Faça login para continuar.", "warning")
+            return redirect(url_for("login"))
+        
+        if session.get("nivel") != "Atendente":
+            flash("Você não tem permissão para acessar esta página.", "danger")
+            return redirect(url_for("reserva"))
+       
+        return func(*args, **kwargs)
+    return wrapper
+
+@app.context_processor
+def injetar_usuario():
+    return {
+        "usuario_logado": session.get("perfil", "Visitante"),
+        "cargo_logado": session.get("nivel", "Convidado")
+    }
 
 #home
 @app.route("/")
@@ -89,6 +158,7 @@ def home():
 #chave 
 @app.route("/chave", methods=["GET", "POST"])
 @login_obrigatorio
+@administrador_obrigatorio
 def chave():
     # Lista de todos os ambientes para preencher o <select>
     todos_ambiente = sessao.query(Ambiente).all()
@@ -125,6 +195,7 @@ def chave():
 #chave consultar
 @app.route("/chave/consultar", methods=["GET", "POST"])
 @login_obrigatorio
+@administrador_obrigatorio
 def consultar_chave():
     #Pegar a chave foi informada
     chave_nome = request.args.get("nome_chave","")
@@ -134,9 +205,10 @@ def consultar_chave():
     #chamar cahve.html para mostrar dados
     return render_template('chave.html', chaves=chaves, ambientes=todos_ambientes)
 
-#alterar
+#alterar chave
 @app.route("/chave/alterar", methods=["POST"])
 @login_obrigatorio
+@administrador_obrigatorio
 def alterar_chave():
     
     # 1. Pega o ID que veio escondido no formulário da modal
@@ -174,9 +246,10 @@ def alterar_chave():
     # Volta para a tela principal de chaves
     return redirect(url_for("chave"))
 
-#chave 
+#chave excluir
 @app.route("/chave/excluir", methods=["POST"])
 @login_obrigatorio
+@administrador_obrigatorio
 def excluir_chave():
     # 1. Pega o ID que veio escondido no formulário da modal
     id_chave = request.form.get("id_chave")
@@ -198,6 +271,7 @@ def excluir_chave():
 #usuario
 @app.route("/usuario", methods=["GET", "POST"])
 @login_obrigatorio
+@administrador_obrigatorio
 def usuario():
     # 1. Pega os perfis para preencher o <select> do formulário
     todos_perfis = sessao.query(Perfil).all()
@@ -207,26 +281,28 @@ def usuario():
         email = request.form.get("email")
         senha_usuario = request.form.get("senha_usuario")
         id_perfil = request.form.get("id_perfil")
+        nivel = request.form.get("nivel") # <-- Capturando o nível enviado pelo select do HTML
         senha_hash = generate_password_hash(senha_usuario)
         
-        # 3. Validação (usando o E-mail, já que não temos o nome)
+        # 3. Validação (usando o E-mail)
         if not email or email.strip() == "":
             flash("O E-mail é obrigatório!", "danger")
             # Envia os perfis e dados vazios para a tela não quebrar
             return render_template("usuario.html", perfis=todos_perfis, dados=[])
 
-        # 4. Inserir usuário no banco
+        # 4. Inserir usuário no banco (com o nível)
         novo_usuario = Usuario(
             email=email, 
             senha_usuario=senha_hash, 
-            id_perfil=id_perfil
+            id_perfil=id_perfil,
+            nivel=nivel # <-- Atribuindo o nível ao modelo/banco
         )
         
         sessao.add(novo_usuario)
         sessao.commit()
         flash("Usuário salvo com sucesso!", "success")
 
-        # Redireciona para a página inicial após o envio
+        # Redireciona para a página após o envio
         return redirect(url_for("usuario"))
    
     # 5. Ao abrir a tela, manda os perfis para o <select> e a lista vazia para a consulta
@@ -235,27 +311,29 @@ def usuario():
 #consultar usuário
 @app.route("/usuario/consultar", methods=["GET"])
 @login_obrigatorio
+@administrador_obrigatorio
 def consultar_usuario():
     
-    # 1. Pega o e-mail que foi digitado na barra de pesquisa
+    
     email_busca = request.args.get("email", "")
     
-    # 2. Faz o JOIN entre Usuário e Perfil, mas filtrando pelo E-MAIL
+    
     usuarios_perfis = sessao.query(Usuario, Perfil).join(
         Perfil, Usuario.id_perfil == Perfil.id_perfil
     ).filter(
         Usuario.email.like(f"%{email_busca}%")
     ).all()
     
-    # 3. Busca todos os perfis (Isso é obrigatório para o <select> da Modal de Editar não quebrar!)
+   
     todos_perfis = sessao.query(Perfil).all()
     
-    # 4. Chama a tela enviando os resultados da busca (dados) e os perfis
+    
     return render_template("usuario.html", dados=usuarios_perfis, perfis=todos_perfis)
 
 #alterar usuario
 @app.route("/usuario/alterar", methods=["POST"])
 @login_obrigatorio
+@administrador_obrigatorio
 def alterar_usuario():
     # 1. Pega o ID que veio escondido no formulário da modal
     id_usuario = request.form.get("id_usuario")
@@ -268,20 +346,22 @@ def alterar_usuario():
         flash("Usuário não encontrado", "danger")
         return redirect(url_for("usuario"))
     
-    # 4. Pega os dados exatos do HTML/Banco
+    # 4. Pega os dados exatos do HTML/Banco (incluindo o nível)
     email = request.form.get("email")
     senha_usuario = request.form.get("senha_usuario")
     id_perfil = request.form.get("id_perfil")
+    nivel = request.form.get("nivel") # <-- Capturando o nível atualizado do modal
     
     # 5. Validação de segurança (usando email)
     if not email or email.strip() == "":
         flash("O E-mail é obrigatório!", "danger")
         return redirect(url_for("usuario"))
         
-    # 6. Atualiza o objeto com os dados novos
+    # 6. Atualiza o objeto com os dados novos (com criptografia na senha e salvando o nível)
     usuario.email = email
-    usuario.senha_usuario = senha_usuario
+    usuario.senha_usuario = generate_password_hash(senha_usuario) # Mantendo o hash seguro
     usuario.id_perfil = int(id_perfil) # Convertendo o ID do perfil para número inteiro!
+    usuario.nivel = nivel # <-- Atualizando o nível do usuário
     
     # 7. Salva as alterações
     sessao.commit()
@@ -290,51 +370,53 @@ def alterar_usuario():
     # Retorna para a tela principal
     return redirect(url_for("usuario"))
 
-#usuario excluir falta ver
+#usuario excluir
 @app.route("/usuario/excluir", methods=["POST"])
 @login_obrigatorio
+@administrador_obrigatorio
 def excluir_usuario():
-    # 1. Pega o ID que veio escondido no formulário da modal
+   
     id_usuario = request.form.get("id_usuario")
     
-    # 2. Busca os dados do usuário
+   
     usuario = sessao.query(Usuario).get(id_usuario)
 
-    # 3. Realiza a exclusão do usuário
+   
     if usuario:
         sessao.delete(usuario)
         sessao.commit()
-        flash("Excluído com sucesso!", "success") # Corrigido para 'success'
+        flash("Excluído com sucesso!", "success") 
     else:
         flash("Usuário não encontrado!", "danger")
 
-    # 4. Retorna a tela principal do usuário
+    
     return redirect(url_for("usuario"))
 
 #ambiente
 @app.route("/ambiente", methods=["GET", "POST"])
 @login_obrigatorio
+@administrador_obrigatorio
 def ambiente():
     if request.method == "POST":
-        # Aqui você pode processar os dados do formulário, por exemplo, salvando em um banco de dados
+        
         ambiente = request.form.get("nome_sala")
         observacao_ambiente = request.form.get("observacao_ambiente")
         tipo= request.form.get("tipo")
         localizacao=request.form.get("localizacao")
         
         
-        # Validação do nome
+     
         if ambiente == "":
             flash("Nome da Sala é obrigatório!", "danger")
             return render_template("ambiente.html")
 
-        #inserir ambiente
+       
         a = Ambiente(nome_sala=ambiente, observacao_ambiente=observacao_ambiente, tipo=tipo, localizacao=localizacao)
         sessao.add(a)
         sessao.commit()
         flash("Sala salvo com sucesso!", "success")
 
-        # Redireciona para a página inicial após o envio do formulário
+       
         return redirect(url_for("ambiente"))
     
     return render_template('ambiente.html')
@@ -342,76 +424,78 @@ def ambiente():
 #ambiente consultar
 @app.route("/ambiente/consultar",methods=["GET", "POST"])
 @login_obrigatorio
+@administrador_obrigatorio
 def consultar_ambiente():
-    #Pegar o ambiente informado
+    
     ambiente_nome = request.args.get("ambiente","")
     
-    #consultar chave
+   
     ambientes = sessao.query(Ambiente).filter(Ambiente.nome_sala.like(f"%{ambiente_nome}%"))
     
-    #chamar p ambiente.html para mostrar dados
+    
     return render_template('ambiente.html', ambientes=ambientes)
 
 #alterar ambiente
 @app.route("/ambiente/alterar", methods=["POST"])
 @login_obrigatorio
+@administrador_obrigatorio
 def alterar_ambiente():
-    # 1. Pega o ID que veio escondido naquele campo <input type="hidden"> da modal
+  
     id_ambiente = request.form.get("id_ambiente")
     
-    # 2. Busca o ambiente no banco
+   
     ambiente = sessao.query(Ambiente).get(id_ambiente)
     
-    # 3. Valida se o ambiente existe
+   
     if ambiente is None:
         flash("Ambiente não encontrado.", "danger")
         return redirect(url_for("ambiente"))
         
-    # 4. Pega os dados exatos usando os atributos 'name' do HTML
+   
     nome_sala = request.form.get("nome_sala")
     tipo = request.form.get("tipo")
     localizacao = request.form.get("localizacao")
     status = request.form.get("status")
     observacao = request.form.get("observacao_ambiente")
     
-    # 5. Validação de segurança simples
+  
     if not nome_sala or nome_sala.strip() == "":
         flash("Nome do Ambiente é obrigatório!", "danger")
         return redirect(url_for("ambiente"))
         
-    # 6. Atualiza o objeto com os dados novos
+  
     ambiente.nome_sala = nome_sala
     ambiente.tipo = tipo
     ambiente.localizacao = localizacao
     ambiente.status_ambiente = int(status)
     ambiente.observacao_ambiente = observacao
     
-    # 7. Salva as alterações direto
+   
     sessao.commit()
     flash("Ambiente alterado com sucesso!", "success")
         
-    # Volta para a tela de ambientes
+  
     return redirect(url_for("ambiente"))
 
 #ambiente excluir
 @app.route("/ambiente/excluir", methods=["POST"])
 @login_obrigatorio
+@administrador_obrigatorio
 def excluir_ambiente():
-    # 1. Pega o ID que veio escondido no formulário da modal
+    
     id_ambiente = request.form.get("id_ambiente")
     
-    # 2. Busca o ambiente no banco
+  
     ambiente = sessao.query(Ambiente).get(id_ambiente)
 
-    # 3. Realiza a exclusao do ambiente
     if ambiente:
         sessao.delete(ambiente)
         sessao.commit()
-        flash("Excluído com sucesso!", "success") # Corrigido para 'success'
+        flash("Excluído com sucesso!", "success") 
     else:
         flash("Ambiente não encontrado!", "danger")
 
-    # 4. Retorna a tela principal do ambiente
+    
     return redirect(url_for("ambiente"))
 
 #perfil
@@ -420,18 +504,17 @@ def excluir_ambiente():
 def perfil():
 
     if request.method == "POST":
-        # Pegando os dados EXATOS com os 'names' definidos no HTML
+        
         nome_perfil = request.form.get("nome_perfil")
         matricula = request.form.get("matricula")
         cargo = request.form.get("cargo")
         
-        # Validação de segurança simples
+      
         if not nome_perfil or nome_perfil.strip() == "":
             flash("Nome do Perfil é obrigatório!", "danger")
-            # Tem que passar a lista de perfis no erro também para não quebrar a página
+    
             return render_template("perfil.html")
 
-        # Inserir perfil (já definindo status_perfil=1 para nascer Ativo)
         p = Perfil(
             nome_perfil=nome_perfil, 
             matricula=matricula, 
@@ -443,83 +526,69 @@ def perfil():
         sessao.commit()
         flash("Perfil salvo com sucesso!", "success")
 
-        # Redireciona para limpar o formulário e evitar duplo envio
         return redirect(url_for("perfil"))
    
-    # Envia a variável 'perfis' para o HTML desenhar os cards
     return render_template('perfil.html')
 
 #consultar perfil
 @app.route("/perfil/consultar", methods=["GET"])
 @login_obrigatorio
 def consultar_perfil():
-    # 1. Pega o texto que foi digitado na barra de pesquisa (nome exato do HTML)
+   
     nome_busca = request.args.get("nome_perfil", "")
     
-    # 2. Consulta o(s) perfil(is) no banco filtrando pelo nome
     perfis = sessao.query(Perfil).filter(Perfil.nome_perfil.like(f"%{nome_busca}%")).all()
     
-    # 3. Chama a página perfil.html enviando os resultados da busca
     return render_template("perfil.html", perfis=perfis)
 
 #alterar perfil
 @app.route("/perfil/alterar", methods=["POST"])
 @login_obrigatorio
 def alterar_perfil():
-    # 1. Pega o ID que veio escondido no formulário da modal
+   
     id_perfil = request.form.get("id_perfil")
     
-    # 2. Busca os dados do perfil no banco
     perfil = sessao.query(Perfil).get(id_perfil)
     
-    # 3. Valida se existe o perfil
     if perfil is None:
         flash("Perfil não encontrado", "danger")
         return redirect(url_for("perfil"))
     
-    # 4. Pega os dados exatos do HTML/Banco
     nome_perfil = request.form.get("nome_perfil")
     matricula = request.form.get("matricula")
     cargo = request.form.get("cargo")
     status_perfil = request.form.get("status_perfil")
     
-    # 5. Validação de segurança
     if not nome_perfil or nome_perfil.strip() == "":
         flash("Nome do Perfil é obrigatório!", "danger")
         return redirect(url_for("perfil"))
         
-    # 6. Atualiza o objeto com os dados novos
     perfil.nome_perfil = nome_perfil
     perfil.matricula = matricula
     perfil.cargo = cargo
     perfil.status_perfil = int(status_perfil) 
     
-    # 7. Salva as alterações
     sessao.commit()
     flash("Perfil alterado com sucesso!", "success") 
     
-    # Retorna para a tela principal
     return redirect(url_for("perfil"))
 
 #perfil excluir
 @app.route("/perfil/excluir", methods=["POST"])
 @login_obrigatorio
 def excluir_perfil():
-    # 1. Pega o ID que veio escondido no formulário da modal de exclusão
+  
     id_perfil = request.form.get("id_perfil")
     
-    # 2. Busca os dados do perfil pelo ID
     perfil = sessao.query(Perfil).get(id_perfil)
 
-    # 3. Realiza a exclusão do perfil
     if perfil:
         sessao.delete(perfil)
         sessao.commit()
-        flash("Excluído com sucesso!", "success") # Corrigido para 'success' (com 2 C's e 2 S's)
+        flash("Excluído com sucesso!", "success") 
     else:
         flash("Perfil não encontrado!", "danger")
 
-    # 4. Retorna a tela principal do perfil
     return redirect(url_for("perfil"))
 
 #movimentacao confirmar
@@ -599,7 +668,7 @@ def reserva():
         
         status = "Reservado"
         
-        # CHAMANDO O RANDINT DIRETO (Sem o 'random.')
+        # Gera o código aleatório de 6 dígitos
         codigo_reserva = str(randint(100000, 999999))
 
         nova_mov = Movimentacao(
@@ -613,6 +682,14 @@ def reserva():
         
         sessao.add(nova_mov)
         sessao.commit()
+        
+        # BUSCA O E-MAIL DO USUÁRIO USANDO O id_perfil QUE VEIO DO FORMULÁRIO
+        usuario_destino = sessao.query(Usuario).filter_by(id_perfil=id_perfil).first()
+        
+        if usuario_destino and usuario_destino.email:
+            # Envia o e-mail usando o e-mail encontrado na tabela de usuário
+            enviar_email_reserva(usuario_destino.email, codigo_reserva)
+        
         flash(f"Reserva realizada com sucesso! Código: {codigo_reserva}", "success")
         return redirect(url_for("reserva"))
         
@@ -683,6 +760,11 @@ def historico():
     termo_busca = request.args.get("busca", "").strip()
     historico_geral = []
     
+    
+    if "busca" in request.args and not termo_busca:
+        flash("Para pesquisar, o código da reserva é obrigatório!", "warning")
+        return redirect(url_for("historico"))
+    
     if termo_busca:
         historico_geral = sessao.query(Movimentacao, Perfil, Chave).join(
             Perfil, Movimentacao.id_perfil == Perfil.id_perfil
@@ -694,6 +776,31 @@ def historico():
         
     return render_template('historico.html', historico=historico_geral, termo_busca=termo_busca)
 
+@app.route("/relatorio", methods=["GET"])
+@administrador_obrigatorio
+def relatorio():
+    # Pega os valores que vieram do formulário de filtro
+    data_inicio = request.args.get("data_inicio")
+    data_fim = request.args.get("data_fim")
+    status_filtro = request.args.get("status")
+    
+    # Inicia a consulta na tabela de movimentações
+    query = sessao.query(Movimentacao)
+    
+    # Se o usuário escolheu um status, filtra por ele
+    if status_filtro:
+        query = query.filter_by(status=status_filtro)
+        
+    # Se você quiser filtrar por data também (exemplo básico considerando o campo de data da reserva):
+    if data_inicio:
+        query = query.filter(Movimentacao.date_hora_reserva >= data_inicio)
+    if data_fim:
+        query = query.filter(Movimentacao.date_hora_reserva <= data_fim)
+        
+    # Executa a consulta final com os filtros aplicados
+    dados_relatorio = query.all()
+    
+    return render_template('relatorio.html', dados_relatorio=dados_relatorio)
 
 @app.route("/esqueci-senha", methods=["GET", "POST"])
 def esqueci_senha():
@@ -713,55 +820,35 @@ def esqueci_senha():
         return redirect(url_for("login"))
 
     return render_template("esqueci_senha.html")
-#login
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    
-    if request.method == "POST":
-        email_login= request.form.get('email')
-        senha_login= request.form.get('senha')
-        usuario=sessao.query(Usuario).filter_by(email=email_login).first()
-        
-        if usuario and check_password_hash(usuario.senha_usuario, senha_login):
-            session["id_usuario"] = usuario.id_usuario
-            session["id_perfil"] = usuario.id_perfil
-            perfil = sessao.query(Perfil).filter_by(id_perfil=usuario.id_perfil).first()
-            session["perfil"] = perfil.nome_perfil
-            print(perfil.nome_perfil)
-            flash("Login realizado com sucesso!", "success")
-            return redirect(url_for("home"))
-        
-        flash("Usuário ou senha inválidos.", "danger")
-        
-    return render_template('login.html')
-
-#logout
-@app.route("/logout")
-def logout():
-    session.clear()
-    flash("Logout realizado.", "success")
-    return redirect(url_for("login"))
-
 
 #login
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    
     if request.method == "POST":
-        email_login= request.form.get('email')
-        senha_login= request.form.get('senha')
-        usuario=sessao.query(Usuario).filter_by(email=email_login).first()
+        email_login = request.form.get('email')
+        senha_login = request.form.get('senha')
         
+        # Busca o usuário no banco de dados pelo e-mail
+        usuario = sessao.query(Usuario).filter_by(email=email_login).first()
+        
+        # Verifica se o usuário existe e se a senha está correta
         if usuario and check_password_hash(usuario.senha_usuario, senha_login):
             session["id_usuario"] = usuario.id_usuario
+            session["email"] = usuario.email          
             session["id_perfil"] = usuario.id_perfil
+            session["nivel"] = usuario.nivel          
+            
+            # Pega o nome do perfil vinculado para exibir no menu lateral
             perfil = sessao.query(Perfil).filter_by(id_perfil=usuario.id_perfil).first()
-            session["perfil"] = perfil.nome_perfil
-            print(perfil.nome_perfil)
+            if perfil:
+                session["perfil"] = perfil.nome_perfil
+            
+            # Flash card verde de sucesso
             flash("Login realizado com sucesso!", "success")
             return redirect(url_for("home"))
         
-        flash("Usuário ou senha inválidos.", "danger")
+        # Flash card vermelho caso o login esteja errado
+        flash("E-mail ou senha inválidos. Tente novamente.", "danger")
         
     return render_template('login.html')
 
@@ -773,5 +860,29 @@ def logout():
     flash("Logout realizado.", "success")
     return redirect(url_for("login"))
 
+
+
+# perfil_adm = sessao.query(Perfil).first()
+# if perfil_adm is None:
+#     perfil_adm = Perfil(nome_perfil="Administrador")
+#     sessao.add(perfil_adm)
+#     sessao.commit()
+#     print("Perfil 'Administrador' criado com sucesso!")
+
+# email_admin = "bryan@gmail.com"
+# usuario_existente = sessao.query(Usuario).filter_by(email=email_admin).first()
+
+# if usuario_existente is None:
+#     novo_usuario = Usuario(
+#         email=email_admin,
+#         senha_usuario=generate_password_hash("1234"),  
+#         id_perfil=perfil_adm.id_perfil,               
+#         nivel="Administrador"                         
+#     )
+#     sessao.add(novo_usuario)
+#     sessao.commit()
+#     print(f"Usuário Administrador ({email_admin}) criado com sucesso!")
+# else:
+#     print("Usuário Administrador já existe no banco.")
 
 app.run(debug=True)

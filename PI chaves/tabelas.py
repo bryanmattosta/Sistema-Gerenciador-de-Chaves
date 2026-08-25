@@ -28,6 +28,7 @@ class Usuario(Base):
     email         = Column(String(250))
     senha_usuario = Column(String(250))
     id_perfil     = Column(Integer)
+    nivel         = Column(String(60))
 Base.metadata.create_all(engine)
 
 #Criando tabela banco de dados perfil
