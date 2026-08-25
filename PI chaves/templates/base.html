@@ -30,10 +30,11 @@
       <!-- Menu Lateral -->
       <div class="offcanvas offcanvas-end div-custom text-white" tabindex="-1" id="offcanvasDarkNavbar" aria-labelledby="offcanvasDarkNavbarLabel">
         
-        <!-- Cabeçalho do Menu (Usuário e Cargo Dinâmicos) -->
+        <!-- Cabeçalho do Menu (Usuário, Cargo e Foto Dinâmicos) -->
         <div class="offcanvas-header border-bottom" style="border-color: rgba(255, 255, 255, 0.1) !important; padding-bottom: 1.5rem;">
           <div class="d-flex align-items-center">
-            <img src="/static/img/icon_user.png" alt="Usuário" class="rounded-circle me-3 bg-white p-1" style="width: 55px; height: 55px; object-fit: cover;">
+            <!-- Exibição dinâmica da foto do usuário logado -->
+            <img src="/static/img/{{ session.get('foto_usuario', 'icon_user.png') }}" alt="Usuário" class="rounded-circle me-3 bg-white p-1" style="width: 55px; height: 55px; object-fit: cover;">
             <div class="d-flex flex-column">
               <h5 class="offcanvas-title mb-0 fw-bold">
                 {{ session.get('perfil', 'Visitante') }}

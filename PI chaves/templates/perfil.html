@@ -22,7 +22,8 @@
         <div class="card-body p-4 pt-0">
             <hr class="text-secondary mb-4 mt-0" style="opacity: 0.1;">
             
-            <form class="row g-4" method="POST" action="{{ url_for('perfil') }}">
+            <!-- Adicionado enctype para aceitar o envio de arquivos/fotos -->
+            <form class="row g-4" method="POST" action="{{ url_for('perfil') }}" enctype="multipart/form-data">
                 
                 <div class="col-md-6">
                     <label for="nome_perfil" class="form-label fw-bold text-secondary">Nome do Perfil</label>
@@ -37,6 +38,12 @@
                 <div class="col-md-6">
                     <label for="matricula" class="form-label fw-bold text-secondary">Matrícula</label>
                     <input type="text" class="form-control form-control-lg rounded-3 bg-light border-0" id="matricula" name="matricula" placeholder="Ex: 202612345" required>
+                </div>
+
+                <!-- Campo de Foto Adicionado Alinhado -->
+                <div class="col-md-6">
+                    <label for="foto" class="form-label fw-bold text-secondary">Foto de Perfil</label>
+                    <input type="file" class="form-control form-control-lg rounded-3 bg-light border-0 py-2" id="foto" name="foto" accept="image/*">
                 </div>
                 
                 <div class="col-12 d-flex justify-content-end mt-4 pt-2">
@@ -82,8 +89,8 @@
                 <div class="col">
                     <div class="card h-100 shadow-sm border-0 bg-light rounded-4">
                         <div class="card-header bg-transparent border-0 text-center pt-4 pb-0">
-                            <!-- Ícone padrão -->
-                            <i class="bi bi-person-circle" style="font-size: 3rem; color: var(--cor-base);"></i>
+                            <!-- Exibição da Foto Real do Perfil Cadastrado -->
+                            <img src="/static/img/{{ perfil.foto_perfil if perfil.foto_perfil else 'icon_user.png' }}" alt="{{ perfil.nome_perfil }}" class="rounded-circle shadow-sm bg-white p-1" style="width: 75px; height: 75px; object-fit: cover;">
                         </div>
                         <div class="card-body text-center">
                             <h5 class="card-title fw-bold" style="color: var(--cor-base);">{{ perfil.nome_perfil }}</h5>
@@ -133,7 +140,8 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             
-                            <form action="{{ url_for('alterar_perfil') }}" method="POST">
+                            <!-- Adicionado enctype para permitir alterar a foto na edição -->
+                            <form action="{{ url_for('alterar_perfil') }}" method="POST" enctype="multipart/form-data">
                                 <div class="modal-body p-4">
                                     <input type="hidden" name="id_perfil" value="{{ perfil.id_perfil }}">
                                     
@@ -159,6 +167,13 @@
                                                 <option value="1" {% if perfil.status_perfil == 1 %}selected{% endif %}>Ativo</option>
                                                 <option value="0" {% if perfil.status_perfil == 0 %}selected{% endif %}>Inativo</option>
                                             </select>
+                                        </div>
+
+                                        <!-- Campo de Foto na Edição -->
+                                        <div class="col-12">
+                                            <label for="foto_{{ perfil.id_perfil }}" class="form-label fw-bold text-secondary">Alterar Foto de Perfil (Opcional)</label>
+                                            <input type="file" class="form-control form-control-lg rounded-3 border-0 shadow-sm" id="foto_{{ perfil.id_perfil }}" name="foto" accept="image/*">
+                                            <div class="form-text text-muted small mt-1">Deixe em branco caso não queira alterar a foto atual.</div>
                                         </div>
                                     </div>
                                 </div>

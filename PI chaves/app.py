@@ -11,6 +11,8 @@ from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_wtf.csrf import CSRFProtect
 from email.message import EmailMessage
+import os
+from werkzeug.utils import secure_filename
 from flask import send_file
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
@@ -142,16 +144,24 @@ def injetar_usuario():
 @app.route("/")
 @login_obrigatorio
 def home(): 
+    # --- VERIFICAÇÃO DE SEGURANÇA DA FOTO NA SESSÃO ---
+    foto_atual = session.get("foto_usuario")
+    if foto_atual and foto_atual != "icon_user.png":
+        caminho_fisico = os.path.join('static', 'img', foto_atual)
+        if not os.path.exists(caminho_fisico):
+            session["foto_usuario"] = "icon_user.png"
+    # --------------------------------------------------
+
     total_ambientes = sessao.query(Ambiente).count()
     total_reservas = sessao.query(Movimentacao).filter(Movimentacao.id_movimentacao).count()
     total_devolucoes = sessao.query(Movimentacao).filter(Movimentacao.status == "Retirado").count()
     total_usuarios = sessao.query(Usuario).count()
 
     return render_template(
-    "index.html", total_ambientes=total_ambientes,
-    total_reservas=total_reservas,
-    total_devolucoes=total_devolucoes,
-    total_usuarios=total_usuarios
+        "index.html", total_ambientes=total_ambientes,
+        total_reservas=total_reservas,
+        total_devolucoes=total_devolucoes,
+        total_usuarios=total_usuarios
     )
     
 
@@ -314,9 +324,7 @@ def usuario():
 @administrador_obrigatorio
 def consultar_usuario():
     
-    
     email_busca = request.args.get("email", "")
-    
     
     usuarios_perfis = sessao.query(Usuario, Perfil).join(
         Perfil, Usuario.id_perfil == Perfil.id_perfil
@@ -324,9 +332,14 @@ def consultar_usuario():
         Usuario.email.like(f"%{email_busca}%")
     ).all()
     
-   
-    todos_perfis = sessao.query(Perfil).all()
+    # Validação de segurança: se o arquivo físico da foto foi deletado da pasta, força o ícone padrão
+    for u, p in usuarios_perfis:
+        if p.foto_perfil:
+            caminho_fisico = os.path.join('static', 'img', p.foto_perfil)
+            if not os.path.exists(caminho_fisico):
+                p.foto_perfil = "icon_user.png"
     
+    todos_perfis = sessao.query(Perfil).all()
     
     return render_template("usuario.html", dados=usuarios_perfis, perfis=todos_perfis)
 
@@ -509,16 +522,38 @@ def perfil():
         matricula = request.form.get("matricula")
         cargo = request.form.get("cargo")
         
-      
         if not nome_perfil or nome_perfil.strip() == "":
             flash("Nome do Perfil é obrigatório!", "danger")
-    
-            return render_template("perfil.html")
+            # Importante: passar os perfis existentes de volta pra tela não quebrar a listagem se der erro
+            perfis = sessao.query(Perfil).all()
+            
+            # Validação caso o arquivo físico tenha sumido
+            for p in perfis:
+                if p.foto_perfil:
+                    caminho_fisico = os.path.join('static', 'img', p.foto_perfil)
+                    if not os.path.exists(caminho_fisico):
+                        p.foto_perfil = "icon_user.png"
+                        
+            return render_template("perfil.html", perfis=perfis)
+
+        # --- LÓGICA DE CAPTURA E SALVAMENTO DA FOTO ---
+        foto = request.files.get('foto')
+        nome_arquivo = "icon_user.png"  # Valor padrão caso nenhuma foto seja enviada
+
+        if foto and foto.filename != '':
+            # Limpa o nome do arquivo para evitar caracteres especiais e espaços
+            nome_arquivo = secure_filename(foto.filename)
+            # Define o caminho completo dentro da sua pasta static/img/
+            caminho_completo = os.path.join('static', 'img', nome_arquivo)
+            # Salva o arquivo fisicamente na pasta
+            foto.save(caminho_completo)
+        # ---------------------------------------------
 
         p = Perfil(
             nome_perfil=nome_perfil, 
             matricula=matricula, 
             cargo=cargo,
+            foto_perfil=nome_arquivo,  # Adicionando o nome da foto no banco
             status_perfil=1
         )
         
@@ -528,7 +563,17 @@ def perfil():
 
         return redirect(url_for("perfil"))
    
-    return render_template('perfil.html')
+    # Para o método GET (quando a página apenas carrega)
+    perfis = sessao.query(Perfil).all()
+    
+    # Validação de segurança: se o arquivo físico foi deletado da pasta, força o ícone padrão
+    for p in perfis:
+        if p.foto_perfil:
+            caminho_fisico = os.path.join('static', 'img', p.foto_perfil)
+            if not os.path.exists(caminho_fisico):
+                p.foto_perfil = "icon_user.png"
+
+    return render_template('perfil.html', perfis=perfis)
 
 #consultar perfil
 @app.route("/perfil/consultar", methods=["GET"])
@@ -545,7 +590,7 @@ def consultar_perfil():
 @app.route("/perfil/alterar", methods=["POST"])
 @login_obrigatorio
 def alterar_perfil():
-   
+    
     id_perfil = request.form.get("id_perfil")
     
     perfil = sessao.query(Perfil).get(id_perfil)
@@ -567,6 +612,15 @@ def alterar_perfil():
     perfil.matricula = matricula
     perfil.cargo = cargo
     perfil.status_perfil = int(status_perfil) 
+    
+    # --- LÓGICA DE ALTERAÇÃO DA FOTO ---
+    foto = request.files.get('foto')
+    if foto and foto.filename != '':
+        nome_arquivo = secure_filename(foto.filename)
+        caminho_completo = os.path.join('static', 'img', nome_arquivo)
+        foto.save(caminho_completo)
+        perfil.foto_perfil = nome_arquivo  # Atualiza a foto apenas se uma nova foi enviada
+    # ----------------------------------
     
     sessao.commit()
     flash("Perfil alterado com sucesso!", "success") 
@@ -836,12 +890,16 @@ def login():
             session["id_usuario"] = usuario.id_usuario
             session["email"] = usuario.email          
             session["id_perfil"] = usuario.id_perfil
-            session["nivel"] = usuario.nivel          
+            session["nivel"] = usuario.nivel      
             
-            # Pega o nome do perfil vinculado para exibir no menu lateral
+            # Pega os dados do perfil vinculado (nome e foto)
             perfil = sessao.query(Perfil).filter_by(id_perfil=usuario.id_perfil).first()
             if perfil:
                 session["perfil"] = perfil.nome_perfil
+                # Pega a foto do perfil (se não tiver, usa o ícone padrão)
+                session["foto_usuario"] = perfil.foto_perfil if perfil.foto_perfil else "icon_user.png"
+            else:
+                session["foto_usuario"] = "icon_user.png"
             
             # Flash card verde de sucesso
             flash("Login realizado com sucesso!", "success")

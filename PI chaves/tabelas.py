@@ -39,6 +39,7 @@ class Perfil(Base):
     matricula     = Column(String(250))
     cargo         = Column(String(200))
     status_perfil = Column(Boolean)
+    foto_perfil   = Column(String(250), default="icon_user.png")
 Base.metadata.create_all(engine)
 
 #Criando tabela banco de dados ambiente

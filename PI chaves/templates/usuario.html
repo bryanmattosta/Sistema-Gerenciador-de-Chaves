@@ -42,7 +42,7 @@
                     </select>
                 </div>
 
-                <!-- NOVO CAMPO: Nível do Usuário -->
+                <!-- Nível do Usuário -->
                 <div class="col-md-6">
                     <label for="nivel" class="form-label fw-bold text-secondary">Nível de Acesso</label>
                     <select name="nivel" id="nivel" class="form-select form-select-lg rounded-3 bg-light border-0" required>
@@ -95,7 +95,8 @@
                 <div class="col">
                     <div class="card h-100 shadow-sm border-0 bg-light rounded-4">
                         <div class="card-header bg-transparent border-0 text-center pt-4 pb-0">
-                            <i class="bi bi-person-fill" style="font-size: 3rem; color: var(--cor-base);"></i>
+                            <!-- EXIBINDO A FOTO REAL DO PERFIL VINCULADO -->
+                            <img src="/static/img/{{ perfil.foto_perfil if perfil.foto_perfil else 'icon_user.png' }}" alt="{{ perfil.nome_perfil }}" class="rounded-circle shadow-sm bg-white p-1" style="width: 75px; height: 75px; object-fit: cover;">
                         </div>
                         <div class="card-body text-center">
                             <h5 class="card-title fw-bold" style="color: var(--cor-base); font-size: 1.1rem; word-break: break-all;">
@@ -106,7 +107,7 @@
                                 <li class="list-group-item bg-transparent border-light">
                                     <strong>Perfil:</strong> {{ perfil.nome_perfil }}
                                 </li>
-                                <!-- EXIBINDO O NÍVEL DO USUÁRIO -->
+                                <!-- Nível do Usuário -->
                                 <li class="list-group-item bg-transparent border-light">
                                     <strong>Nível:</strong> {{ usuario.nivel }}
                                 </li>
