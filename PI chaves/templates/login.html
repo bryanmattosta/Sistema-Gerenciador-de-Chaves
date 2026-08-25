@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block titulo %} - Login{% endblock %}
+
+{% block conteudo %}
+<div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+    <div class="col-md-5">
+        
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-light">
+            <div class="card-body">
+                
+                <!-- Ícone e Título -->
+                <div class="text-center mb-4 pt-3">
+                    <i class="bi bi-key-fill text-secondary" style="font-size: 3rem; color: var(--cor-base) !important;"></i>
+                    <h3 class="fw-bold mt-2" style="color: var(--cor-base);">Acesso ao Sistema</h3>
+                    <p class="text-muted small">Entre com seu e-mail e senha para continuar</p>
+                </div>
+
+                <!-- Formulário de Login -->
+                <form method="POST" action="{{ url_for('login') }}">
+                    
+                    <!-- E-mail -->
+                    <div class="mb-3">
+                        <label for="email" class="form-label fw-bold text-secondary">E-mail</label>
+                        <div class="input-group shadow-sm rounded-3 overflow-hidden">
+                            <span class="input-group-text bg-white border-0 ps-3 text-secondary">
+                                <i class="bi bi-envelope"></i>
+                            </span>
+                            <input type="email" class="form-control form-control-lg border-0 bg-white" id="email" name="email" placeholder="seu.email@exemplo.com" required>
+                        </div>
+                    </div>
+
+                    <!-- Senha -->
+                    <div class="mb-4">
+                        <label for="senha" class="form-label fw-bold text-secondary">Senha</label>
+                        <div class="input-group shadow-sm rounded-3 overflow-hidden">
+                            <span class="input-group-text bg-white border-0 ps-3 text-secondary">
+                                <i class="bi bi-lock"></i>
+                            </span>
+                            <input type="password" class="form-control form-control-lg border-0 bg-white" id="senha" name="senha" placeholder="Digite sua senha..." required>
+                        </div>
+                    </div>
+
+                    <!-- Botão de Entrar -->
+                    <div class="d-grid gap-2 mb-3">
+                        <button type="submit" class="btn btn-lg rounded-3 shadow-sm text-white py-2" style="background-color: var(--cor-primaria);">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>Entrar
+                        </button>
+                    </div>
+
+                    <!-- Botão / Link de Esqueci a Senha -->
+                    <div class="text-center">
+                        <a href="#" class="text-decoration-none small text-muted fw-semibold">
+                            Esqueci minha senha
+                        </a>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from sqlalchemy import create_engine, Column, Integer, String, Numeric, Date
 from sqlalchemy.orm import declarative_base, sessionmaker
 from flask_sqlalchemy import SQLAlchemy
+from flask import session
+from werkzeug.security import generate_password_hash, check_password_hash
 from tabelas import engine, Base, Chave, Usuario, Perfil, Ambiente, Movimentacao
 from random import randint
 from datetime import datetime
@@ -137,6 +139,7 @@ def usuario():
         email = request.form.get("email")
         senha_usuario = request.form.get("senha_usuario")
         id_perfil = request.form.get("id_perfil")
+        senha_hash = generate_password_hash(senha_usuario)
         
         # 3. Validação (usando o E-mail, já que não temos o nome)
         if not email or email.strip() == "":
@@ -147,7 +150,7 @@ def usuario():
         # 4. Inserir usuário no banco
         novo_usuario = Usuario(
             email=email, 
-            senha_usuario=senha_usuario, 
+            senha_usuario=senha_hash, 
             id_perfil=id_perfil
         )
         
@@ -440,6 +443,7 @@ def excluir_perfil():
     # 4. Retorna a tela principal do perfil
     return redirect(url_for("perfil"))
 
+#movimentacao confirmar
 @app.route("/movimentacao", methods=["GET", "POST"])
 def movimentacao():
     if request.method == "POST":
@@ -469,7 +473,7 @@ def estornar_retirada():
         flash("Movimentação não encontrada!", "danger")
     return redirect(url_for("movimentacao"))
 
-#devolucao #feita
+#devolucao confirmar
 @app.route("/devolucao", methods=["GET", "POST"])
 def devolucao():
     if request.method == "POST":
@@ -587,7 +591,6 @@ def excluir_reserva():
 
 #historico
 @app.route("/historico", methods=["GET"])
-@app.route("/historico", methods=["GET"])
 def historico():
     termo_busca = request.args.get("busca", "").strip()
     historico_geral = []
@@ -602,5 +605,35 @@ def historico():
         ).all()
         
     return render_template('historico.html', historico=historico_geral, termo_busca=termo_busca)
+
+#login
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    
+    if request.method == "POST":
+        email_login= request.form.get('email')
+        senha_login= request.form.get('senha')
+        usuario=sessao.query(Usuario).filter_by(email=email_login).first()
+        
+        if usuario and check_password_hash(usuario.senha_usuario, senha_login):
+            session["id_usuario"] = usuario.id_usuario
+            session["id_perfil"] = usuario.id_perfil
+            perfil = sessao.query(Perfil).filter_by(id_perfil=usuario.id_perfil).first()
+            session["perfil"] = perfil.nome_perfil
+            print(perfil.nome_perfil)
+            flash("Login realizado com sucesso!", "success")
+            return redirect(url_for("home"))
+        
+        flash("Usuário ou senha inválidos.", "danger")
+        
+    return render_template('login.html')
+
+#logout
+@app.route("/logout")
+def logout():
+    session.clear()
+    flash("Logout realizado.", "success")
+    return redirect(url_for("login"))
+
 
 app.run(debug=True)
