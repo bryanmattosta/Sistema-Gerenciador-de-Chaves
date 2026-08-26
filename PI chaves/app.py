@@ -18,6 +18,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 import random
 import smtplib
+import time
 
 
 #cria a sesao
@@ -30,7 +31,7 @@ app.secret_key="63f4945d921d599f27ae4fdf5bada3f1"
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SECURE"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-# csrf = CSRFProtect(app)
+csrf = CSRFProtect(app)
 
 #variaveis do email (gmail)
 EMAIL = "senacdf.operadormicro@gmail.com"
@@ -830,6 +831,7 @@ def historico():
         
     return render_template('historico.html', historico=historico_geral, termo_busca=termo_busca)
 
+#relatorio
 @app.route("/relatorio", methods=["GET"])
 @administrador_obrigatorio
 def relatorio():
@@ -838,24 +840,40 @@ def relatorio():
     data_fim = request.args.get("data_fim")
     status_filtro = request.args.get("status")
     
-    # Inicia a consulta na tabela de movimentações
-    query = sessao.query(Movimentacao)
+    # Inicia a consulta unindo Movimentacao com Perfil e Chave para buscar os nomes reais
+    query = sessao.query(Movimentacao, Perfil, Chave).join(
+        Perfil, Movimentacao.id_perfil == Perfil.id_perfil
+    ).join(
+        Chave, Movimentacao.id_chave == Chave.id_chave
+    )
     
     # Se o usuário escolheu um status, filtra por ele
     if status_filtro:
-        query = query.filter_by(status=status_filtro)
+        query = query.filter(Movimentacao.status == status_filtro)
         
-    # Se você quiser filtrar por data também (exemplo básico considerando o campo de data da reserva):
+    # Filtros de data
     if data_inicio:
         query = query.filter(Movimentacao.date_hora_reserva >= data_inicio)
     if data_fim:
         query = query.filter(Movimentacao.date_hora_reserva <= data_fim)
         
     # Executa a consulta final com os filtros aplicados
-    dados_relatorio = query.all()
+    resultados = query.all()
+    
+    # Monta a lista organizada para o HTML com a primeira letra maiúscula (.title())
+    dados_relatorio = []
+    for mov, perfil, chave in resultados:
+        dados_relatorio.append({
+            "codigo_reserva": mov.codigo_reserva,
+            "nome_perfil": perfil.nome_perfil.title() if perfil.nome_perfil else "",
+            "nome_chave": chave.nome_chave.title() if chave.nome_chave else "",
+            "date_hora_reserva": mov.date_hora_reserva,
+            "status": mov.status
+        })
     
     return render_template('relatorio.html', dados_relatorio=dados_relatorio)
 
+#esqueci_senha
 @app.route("/esqueci-senha", methods=["GET", "POST"])
 def esqueci_senha():
     if request.method == "POST":
@@ -876,8 +894,22 @@ def esqueci_senha():
     return render_template("esqueci_senha.html")
 
 #login
+import time
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    # Garante que a variável sempre exista com valor padrão
+    tempo_bloqueio = 0
+
+    # Verifica se o usuário está bloqueado por excesso de tentativas
+    bloqueio_ate = session.get("bloqueio_ate", 0)
+    tempo_atual = time.time()
+    
+    if tempo_atual < bloqueio_ate:
+        tempo_bloqueio = int(bloqueio_ate - tempo_atual)
+        flash(f"Muitas tentativas incorretas. Aguarde {tempo_bloqueio} segundos para tentar novamente.", "danger")
+        return render_template('login.html', tempo_bloqueio=tempo_bloqueio)
+
     if request.method == "POST":
         email_login = request.form.get('email')
         senha_login = request.form.get('senha')
@@ -887,6 +919,10 @@ def login():
         
         # Verifica se o usuário existe e se a senha está correta
         if usuario and check_password_hash(usuario.senha_usuario, senha_login):
+            # Login bem-sucedido: limpa o contador de tentativas e o bloqueio
+            session.pop("tentativas_login", None)
+            session.pop("bloqueio_ate", None)
+
             session["id_usuario"] = usuario.id_usuario
             session["email"] = usuario.email          
             session["id_perfil"] = usuario.id_perfil
@@ -905,10 +941,20 @@ def login():
             flash("Login realizado com sucesso!", "success")
             return redirect(url_for("home"))
         
-        # Flash card vermelho caso o login esteja errado
-        flash("E-mail ou senha inválidos. Tente novamente.", "danger")
+        # --- LÓGICA DE CONTROLE DE TENTATIVAS FALHAS ---
+        tentativas = session.get("tentativas_login", 0) + 1
+        session["tentativas_login"] = tentativas
         
-    return render_template('login.html')
+        if tentativas >= 5:
+            tempo_bloqueio = 30
+            session["bloqueio_ate"] = time.time() + tempo_bloqueio
+            flash(f"Limite de tentativas excedido. Aguarde {tempo_bloqueio} segundos.", "danger")
+            return render_template('login.html', tempo_bloqueio=tempo_bloqueio)
+        
+        restantes = 5 - tentativas
+        flash(f"E-mail ou senha inválidos. Você tem mais {restantes} tentativa(s).", "danger")
+        
+    return render_template('login.html', tempo_bloqueio=tempo_bloqueio)
 
 #logout
 @app.route("/logout")

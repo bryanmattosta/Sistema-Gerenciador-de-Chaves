@@ -69,8 +69,8 @@
                 <thead class="table-light text-secondary small text-uppercase">
                     <tr>
                         <th class="py-3 ps-4">Código</th>
-                        <th class="py-3">ID Perfil</th>
-                        <th class="py-3">ID Chave</th>
+                        <th class="py-3">Nome do Perfil</th>
+                        <th class="py-3">Nome da Chave</th>
                         <th class="py-3">Data Reserva</th>
                         <th class="py-3">Status</th>
                     </tr>
@@ -80,8 +80,8 @@
                         {% for item in dados_relatorio %}
                         <tr>
                             <td class="ps-4 fw-bold text-secondary">{{ item.codigo_reserva }}</td>
-                            <td>{{ item.id_perfil }}</td>
-                            <td>{{ item.id_chave }}</td>
+                            <td>{{ item.nome_perfil }}</td>
+                            <td>{{ item.nome_chave }}</td>
                             <td>{{ item.date_hora_reserva }}</td>
                             <td>
                                 <span class="badge bg-secondary px-3 py-2 rounded-pill">{{ item.status }}</span>

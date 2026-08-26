@@ -16,8 +16,8 @@
                     <p class="text-muted small">Entre com seu e-mail e senha para continuar</p>
                 </div>
 
-                <!-- Formulário de Login -->
-                <form method="POST" action="{{ url_for('login') }}">
+                <!-- Formulário de Login (Guardamos o tempo de bloqueio de forma segura aqui no data-tempo) -->
+                <form method="POST" action="{{ url_for('login') }}" id="formLogin" data-tempo="{{ tempo_bloqueio | default(0) }}">
                     
                     <!-- E-mail -->
                     <div class="mb-3">
@@ -26,7 +26,7 @@
                             <span class="input-group-text bg-white border-0 ps-3 text-secondary">
                                 <i class="bi bi-envelope"></i>
                             </span>
-                            <input type="email" class="form-control form-control-lg border-0 bg-white" id="email" name="email" placeholder="seu.email@exemplo.com" required>
+                            <input type="email" class="form-control form-control-lg border-0 bg-white" id="email" name="email" placeholder="seu.email@exemplo.com" required {% if tempo_bloqueio and tempo_bloqueio > 0 %}disabled{% endif %}>
                         </div>
                     </div>
 
@@ -37,14 +37,14 @@
                             <span class="input-group-text bg-white border-0 ps-3 text-secondary">
                                 <i class="bi bi-lock"></i>
                             </span>
-                            <input type="password" class="form-control form-control-lg border-0 bg-white" id="senha" name="senha" placeholder="Digite sua senha..." required>
+                            <input type="password" class="form-control form-control-lg border-0 bg-white" id="senha" name="senha" placeholder="Digite sua senha..." required {% if tempo_bloqueio and tempo_bloqueio > 0 %}disabled{% endif %}>
                         </div>
                     </div>
 
                     <!-- Botão de Entrar -->
                     <div class="d-grid gap-2 mb-3">
-                        <button type="submit" class="btn btn-lg rounded-3 shadow-sm text-white py-2" style="background-color: var(--cor-primaria);">
-                            <i class="bi bi-box-arrow-in-right me-2"></i>Entrar
+                        <button type="submit" id="btnEntrar" class="btn btn-lg rounded-3 shadow-sm text-white py-2" style="background-color: var(--cor-primaria);">
+                            <i class="bi bi-box-arrow-in-right me-2"></i><span id="textoBotao">Entrar</span>
                         </button>
                     </div>
 
@@ -62,4 +62,42 @@
 
     </div>
 </div>
+
+<!-- Script limpo que lê o atributo HTML, sem conflito com o Jinja -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const form = document.getElementById('formLogin');
+        let tempoRestante = parseInt(form.getAttribute('data-tempo')) || 0;
+        
+        if (tempoRestante > 0) {
+            const btnEntrar = document.getElementById('btnEntrar');
+            const textoBotao = document.getElementById('textoBotao');
+            const emailInput = document.getElementById('email');
+            const senhaInput = document.getElementById('senha');
+
+            // Trava o botão visualmente (esmaecido/mais branco) e desativa os inputs
+            btnEntrar.disabled = true;
+            btnEntrar.style.opacity = "0.4";
+            btnEntrar.style.cursor = "not-allowed";
+
+            const intervalo = setInterval(() => {
+                tempoRestante--;
+                if (tempoRestante > 0) {
+                    textoBotao.innerHTML = `Bloqueado (${tempoRestante}s)`;
+                } else {
+                    clearInterval(intervalo);
+                    // Destrava o botão e os campos quando o tempo acaba
+                    btnEntrar.disabled = false;
+                    btnEntrar.style.opacity = "1";
+                    btnEntrar.style.cursor = "pointer";
+                    textoBotao.innerHTML = "Entrar";
+                    if (emailInput) emailInput.disabled = false;
+                    if (senhaInput) senhaInput.disabled = false;
+                }
+            }, 1000);
+            
+            textoBotao.innerHTML = `Bloqueado (${tempoRestante}s)`;
+        }
+    });
+</script>
 {% endblock %}

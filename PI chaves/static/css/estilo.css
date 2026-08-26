@@ -8,16 +8,32 @@
     --cor-branco-card: #FFFFFF;
 }
 
-body {
-    background-color: var(--cor-fundo);
-    color: var(--cor-texto);
+/* Variáveis aplicadas quando o Modo Suave/Dark estiver ativo */
+body.modo-suave {
+    --cor-base: #1a252f;
+    --cor-primaria: #4c7b91;
+    --cor-fundo: #1e2229;      /* Fundo chumbo suave e confortável */
+    --cor-texto: #e2e8f0;      /* Texto claro e legível */
+    --cor-branco-card: #272c35; /* Fundo dos cards levemente destacado do fundo geral */
+    background-color: #1e2229 !important; /* Garante que o fundo geral cubra até a última linha da tela */
+}
+
+/* Sincroniza o HTML e o Body para preencher os cantos e o meio ao mesmo tempo */
+html, body {
+    background-color: var(--cor-fundo) !important;
+    color: var(--cor-texto) !important;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    transition: background-color 0.25s ease-in-out, color 0.25s ease-in-out;
 }
 
 /* --- CABEÇALHO, MENU E RODAPÉ --- */
-.navbar-custom, .div-custom, #rodape {
+.navbar-custom, .div-custom {
     background-color: var(--cor-base) !important;
     color: #ffffff;
+    transition: background-color 0.25s ease-in-out;
 }
 
 #cabecalho {
@@ -25,7 +41,11 @@ body {
 }
 
 #rodape {
+    background-color: var(--cor-base) !important;
     color: rgba(255, 255, 255, 0.7);
+    transition: background-color 0.25s ease-in-out, color 0.25s ease-in-out;
+    position: relative;
+    z-index: 2;
 }
 
 /* --- LINKS DO MENU LATERAL (Cards Semi-Transparentes e Suaves) --- */
@@ -81,7 +101,7 @@ body {
 
 /* --- CONTEÚDO PRINCIPAL E CARDS --- */
 #conteudo {
-    background-color: var(--cor-fundo);
+    background-color: transparent;
 }
 
 #cardPrincipal, #cadastro {
@@ -91,6 +111,7 @@ body {
     padding: 2.5rem;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04); 
+    transition: background-color 0.25s ease-in-out;
 }
 
 #nome_card {
@@ -126,18 +147,12 @@ body {
 
 /* --- LARGURA DOS CARDS (Formatos Retangulares) --- */
 #cadastro, #cardPrincipal {
-    /* Aumenta a largura máxima para dar o aspecto retangular */
     max-width: 950px !important; 
 }
 
 /* --- ANIMAÇÃO DA SETINHA NO ACORDEON --- */
 .icone-seta {
     transition: transform 0.3s ease;
-}
-
-/* Quando o formulário estiver aberto (aria-expanded="true"), a seta vira para cima */
-#cadastro .card-header[aria-expanded="true"] .icone-seta {
-    transform: rotate(180deg);
 }
 
 #cadastro .card-header[aria-expanded="true"] .icone-seta {
@@ -149,7 +164,6 @@ body {
 }
 
 @media print {
-    
     .btn, 
     form, 
     header, 
@@ -160,7 +174,6 @@ body {
         display: none !important;
     }
 
-    
     body {
         background-color: #fff !important;
         color: #000 !important;
@@ -168,14 +181,12 @@ body {
         padding: 0 !important;
     }
 
-    
     .card {
         border: none !important;
         box-shadow: none !important;
         background: transparent !important;
     }
 
-    
     .table {
         width: 100% !important;
         border-collapse: collapse !important;

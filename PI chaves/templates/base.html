@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+  <!-- SCRIPT IMEDIATO: Executa antes de qualquer renderização para bloquear o flash branco -->
+  <script>
+      if (localStorage.getItem('modoSuave') === 'ativo') {
+          document.documentElement.style.backgroundColor = '#1e2229';
+          document.documentElement.classList.add('modo-suave-html');
+      }
+  </script>
+
   <title>Gerenciador de Chaves | {% block titulo %}Início{% endblock %}</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -13,7 +21,14 @@
   <link rel="stylesheet" href="/static/css/estilo.css" type="text/css" media="all">
 </head>
 
-<body class="d-flex flex-column min-vh-100">
+<body class="d-flex flex-column min-vh-100 {% if request.endpoint not in ['login', 'esqueci_senha'] %}{% endif %}">
+
+<!-- Script inline para aplicar a classe no body instantaneamente se estiver ativo -->
+<script>
+    if (localStorage.getItem('modoSuave') === 'ativo') {
+        document.body.classList.add('modo-suave');
+    }
+</script>
 
 <!-- O CABEÇALHO SÓ APARECE SE NÃO ESTIVER NO LOGIN OU ESQUECI A SENHA -->
 {% if request.endpoint not in ['login', 'esqueci_senha'] %}
@@ -23,9 +38,19 @@
       <a class="navbar-brand fw-bold" href="#">
         <i class="bi bi-key-fill me-2"></i>Controle de Chaves
       </a>
-      <button class="navbar-toggler border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasDarkNavbar" aria-controls="offcanvasDarkNavbar">
-        <span class="navbar-toggler-icon"></span>
-      </button>
+
+      <!-- Container para os botões do canto direito -->
+      <div class="d-flex align-items-center gap-2">
+        <!-- Botão Discreto de Dark Mode -->
+        <button class="btn btn-sm text-white-50 border-0 bg-transparent p-2 rounded-circle" id="btnAlternarTema" title="Alternar Tema" style="transition: color 0.2s;">
+            <i class="bi bi-moon-fill fs-5" id="iconeTema"></i>
+        </button>
+
+        <!-- Botão Menu Lateral -->
+        <button class="navbar-toggler border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasDarkNavbar" aria-controls="offcanvasDarkNavbar">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+      </div>
 
       <!-- Menu Lateral -->
       <div class="offcanvas offcanvas-end div-custom text-white" tabindex="-1" id="offcanvasDarkNavbar" aria-labelledby="offcanvasDarkNavbarLabel">
@@ -154,6 +179,58 @@
   </div>
 </footer>
 
+<!-- Estilo customizado para o Modo Suave -->
+<style>
+    html.modo-suave-html {
+        background-color: #1e2229 !important;
+    }
+    body.modo-suave {
+        background-color: #1e2229 !important;
+        color: #e2e8f0 !important;
+    }
+    body.modo-suave footer {
+        background-color: #171a21 !important;
+        border-color: rgba(255, 255, 255, 0.05) !important;
+        color: #94a3b8;
+    }
+</style>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Script para alternar o tema e gerenciar o botão -->
+<script>
+    const btnAlternarTema = document.getElementById('btnAlternarTema');
+    const iconeTema = document.getElementById('iconeTema');
+
+    // Atualiza o ícone ao carregar com base no estado atual
+    if (localStorage.getItem('modoSuave') === 'ativo') {
+        atualizarIcone('ativo');
+    }
+
+    btnAlternarTema.addEventListener('click', () => {
+        document.body.classList.toggle('modo-suave');
+        document.documentElement.classList.toggle('modo-suave-html');
+        
+        if (document.body.classList.contains('modo-suave')) {
+            localStorage.setItem('modoSuave', 'ativo');
+            atualizarIcone('ativo');
+        } else {
+            localStorage.setItem('modoSuave', 'inativo');
+            localStorage.removeItem('modoSuave');
+            document.documentElement.style.backgroundColor = '';
+            atualizarIcone('inativo');
+        }
+    });
+
+    function atualizarIcone(estado) {
+        if (estado === 'ativo') {
+            iconeTema.classList.remove('bi-moon-fill');
+            iconeTema.classList.add('bi-sun-fill');
+        } else {
+            iconeTema.classList.remove('bi-sun-fill');
+            iconeTema.classList.add('bi-moon-fill');
+        }
+    }
+</script>
 </body>
 </html>
